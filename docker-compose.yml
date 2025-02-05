@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  server:
+    build: ./server
+    ports:
+      - "8801:8800"  # Ensure this matches your backend server's port
+    volumes:
+      - logs:/app/logs
+      - ./server:/app
+    environment:
+      - PORT=8800
+      - MONGO_URI=mongodb+srv://Prince:Prince_12@cluster0.3arcf.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+      - JWT_SECRET=Mytube1secret
+      - NODE_ENV=production
+    network_mode: host
+
+  client:
+    build: ./client
+    ports:
+      - "5174:5173"
+    volumes:
+      - ./client:/app
+    stdin_open: true
+    tty: true
+    depends_on:
+      - server
+
+volumes:
+  logs:
