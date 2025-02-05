@@ -24,7 +24,8 @@ app.use(cors({
 
 
 app.use(express.json());
-app.use(cookieParser())
+app.use(cookieParser());
+app.use("/uploads" , express.static("uploads"))
 
 //all routes
 app.use("/api/v1", userApi)

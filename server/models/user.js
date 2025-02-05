@@ -22,7 +22,7 @@ const user = new mongoose.Schema({
             ref : "podcasts",
         },
     ],
-    
+     
 },
 {timestamps : true}
 );

@@ -11,6 +11,9 @@ import axios from 'axios';
 import { useDispatch } from 'react-redux';
 import { authActions } from './store/auth.js';
 import AddPodcast from './pages/AddPodcast.jsx';
+import AllPodcasts from './pages/AllPodcasts.jsx';
+import CategoriesPage from './pages/CategoriesPages.jsx';
+import DescriptionPage from './pages/DescriptionPage.jsx';
 
 const App = () => {
   const dispatch = useDispatch();
@@ -39,6 +42,9 @@ const App = () => {
             <Route path="/categories" element={<Categories/>}/>
             <Route path="/profile" element={<Profile/>}/>
             <Route path="/add-podcast" element={<AddPodcast/>}/>
+            <Route path="/all-podcasts" element={<AllPodcasts/>}/>
+            <Route path="/categories/:cat" element={<CategoriesPage/>} />
+            <Route path="/description/:id" element={<DescriptionPage/>} />
           </Route>
 
             <Route path="/signup" element={<Signup />} />
