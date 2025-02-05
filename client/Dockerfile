@@ -1,18 +1,22 @@
-# Dockerfile for React client
-
-#Build react client
+# Use a lightweight Node.js image
 FROM node:18-alpine
 
-#Working directory be app
+# Set working directory inside the container
 WORKDIR /usr/src/app
 
+# Copy only package files first to leverage caching
 COPY package*.json ./
 
-### Installing dependencies
-RUN npm install --silent
+# Install dependencies efficiently
+RUN npm ci
 
-#COPY local files to app folder
+# Copy the rest of the project files
 COPY . .
 
-EXPOSE 3000
-CMD ["npm","run","dev"]
+EXPOSE 5174 
+
+# Set environment variables to allow Vite to work in a container
+ENV HOST=0.0.0.0
+
+# Start the Vite development server
+CMD ["npm", "run", "dev"]

@@ -30,10 +30,9 @@ const Header = () => {
 
     const LogOutHandler = async () => {
         try {
-            const res = await axios.post("http://localhost:8800/api/v1/logout", null, {
+            await axios.post("http://localhost:8800/api/v1/logout", null, {
                 withCredentials: true,
             });
-            //console.log(res);
             dispatch(authActions.logout());
             navigate("/");
         } catch (err) {
@@ -41,26 +40,30 @@ const Header = () => {
         }
     };
 
-    if (loading) return <p className="text-center text-zinc-300">Loading...</p>;
+    if (loading)
+        return <p className="text-center text-gray-500 animate-pulse">Loading...</p>;
 
-    if (error) return <p className="text-center text-red-500">{error}</p>;
+    if (error)
+        return <p className="text-center text-red-500">{error}</p>;
 
     return (
         userData && (
-            <div className="bg-green-900 rounded py-8 flex flex-col md:flex-row items-center justify-center gap-4 md:justify-between px-4 lg:px-12">
-                <div className="flex flex-col items-center md:items-start">
-                    <p className="text-zinc-300">{userData.username}</p>
-                    <h1 className="text-3xl md:text-4xl lg:text-5xl text-zinc-100 font-bold text-center">
-                        Hello Welcome
+            <div className="bg-gradient-to-r from-purple-600 to-indigo-500 rounded-lg py-8 flex flex-col md:flex-row items-center justify-between gap-6 px-6 lg:px-16 shadow-2xl">
+                <div className="text-center md:text-left">
+                    <p className="text-gray-200 text-sm mb-1 tracking-wide">
+                        Welcome back,
+                    </p>
+                    <h1 className="text-4xl lg:text-5xl font-extrabold text-white leading-tight drop-shadow-md">
+                        {userData.username}
                     </h1>
-                    <p className="text-zinc-300 mt-1">{userData.email}</p>
+                    <p className="text-gray-300 mt-2 text-sm">{userData.email}</p>
                 </div>
                 <div>
                     <button
-                        className="bg-white px-4 py-2 rounded text-zinc-800 font-semibold hover:shadow-xl transition-all duration-300"
+                        className="bg-white text-indigo-600 px-6 py-3 rounded-full text-lg font-semibold shadow-lg hover:shadow-xl hover:bg-gray-100 transition-transform duration-300 ease-in-out transform hover:scale-105"
                         onClick={LogOutHandler}
                     >
-                        LogOut
+                        Log Out
                     </button>
                 </div>
             </div>

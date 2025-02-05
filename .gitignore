@@ -1,0 +1,3 @@
+server/.env
+docker-compose.yml
+server/uploads/
