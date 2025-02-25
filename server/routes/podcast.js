@@ -18,9 +18,6 @@ router.post("/add-podcast", authMiddleware, upload, async (req, res) => {
 
         console.log("Incoming data:", { title, description, category });
 
-        const allCategories = await Category.find();
-        console.log("All categories in database:", allCategories.map(cat => cat.categoryName));
-
         const cat = await Category.findOne({ categoryName: new RegExp(`^${category}$`, "i") });
         console.log("Matching category:", cat);
 
@@ -48,42 +45,36 @@ router.post("/add-podcast", authMiddleware, upload, async (req, res) => {
     }
 });
 
-
-
 // Get all podcasts
 router.get("/get-podcasts", async (req, res) => {
     try {
         const podcasts = await Podcast.find()
-            .populate("category")
+            .populate("category", "categoryName") // Fetch only categoryName
             .sort({ createdAt: -1 })
-            .lean();  // Improves performance by returning plain objects
+            .lean(); 
 
         res.status(200).json({ data: podcasts });
     } catch (error) {
-        console.error("Error fetching podcasts:", error);  // Logs error for debugging
+        console.error("Error fetching podcasts:", error);
         res.status(500).json({ message: "Internal server error" });
     }
 });
 
-
 // Get user podcasts
 router.get("/get-user-podcasts", authMiddleware, async (req, res) => {
     try {
-        const { user } = req;
-        const userid = user._id;
-
-        const data = await User.findById(userid)
+        const user = await User.findById(req.user._id)
             .populate({
                 path: "podcasts",
-                populate: { path: "category" },
+                populate: { path: "category", select: "categoryName" },
             })
             .select("-password");
 
-        if (data && data.podcasts) {
-            data.podcasts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        if (user && user.podcasts) {
+            user.podcasts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         }
 
-        res.status(200).json({ data: data.podcasts });
+        res.status(200).json({ data: user.podcasts });
     } catch (error) {
         res.status(500).json({ message: "Internal server error" });
     }
@@ -92,9 +83,8 @@ router.get("/get-user-podcasts", authMiddleware, async (req, res) => {
 // Get podcast by ID
 router.get("/get-podcast/:id", async (req, res) => {
     try {
-        const { id } = req.params;
-        const podcasts = await Podcast.findById(id).populate("category");
-        res.status(200).json({ data: podcasts });
+        const podcast = await Podcast.findById(req.params.id).populate("category", "categoryName");
+        res.status(200).json({ data: podcast });
     } catch (error) {
         res.status(500).json({ message: "Internal server error" });
     }
@@ -103,13 +93,11 @@ router.get("/get-podcast/:id", async (req, res) => {
 // Get podcasts by category
 router.get("/category/:cat", async (req, res) => {
     try {
-        const { cat } = req.params;
-
-        // Find categories and populate podcasts
-        const categories = await Category.find({ categoryName: new RegExp(`^${cat}$`, "i") }).populate({
-            path: "podcasts",
-            populate: { path: "category" },
-        });
+        const categories = await Category.find({ categoryName: new RegExp(`^${req.params.cat}$`, "i") })
+            .populate({
+                path: "podcasts",
+                populate: { path: "category", select: "categoryName" },
+            });
 
         let podcasts = [];
         categories.forEach((category) => {
@@ -118,6 +106,47 @@ router.get("/category/:cat", async (req, res) => {
 
         res.status(200).json({ data: podcasts });
     } catch (error) {
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+// Save watched podcast
+router.post("/save-watched/:id", async (req, res) => {
+    try {
+        const { podcastId } = req.body;
+        const user = await User.findById(req.user._id);
+
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        if (user.watchedPodcasts.includes(podcastId)) {
+            return res.status(400).json({ message: "Podcast already marked as watched" });
+        }
+
+        user.watchedPodcasts.push(podcastId);
+        await user.save();
+
+        res.status(200).json({ message: "Podcast added to watched list" });
+    } catch (error) {
+        console.error("Error saving watched podcast:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+// Get watched podcasts (Optimized)
+router.get("/get-watched/:id", async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id)
+            .populate({
+                path: "watchedPodcasts",
+                select: "title category createdAt", // Limit fields
+                populate: { path: "category", select: "categoryName" },
+            });
+
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        res.status(200).json({ data: user.watchedPodcasts });
+    } catch (error) {
+        console.error("Error fetching watched podcasts:", error);
         res.status(500).json({ message: "Internal server error" });
     }
 });

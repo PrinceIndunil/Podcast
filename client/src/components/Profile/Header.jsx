@@ -48,12 +48,12 @@ const Header = () => {
 
     return (
         userData && (
-            <div className="bg-gradient-to-r from-purple-600 to-indigo-500 rounded-lg py-8 flex flex-col md:flex-row items-center justify-between gap-6 px-6 lg:px-16 shadow-2xl">
+            <div className="bg-gradient-to-r from-purple-600 to-indigo-500 rounded-lg py-8 flex flex-col md:flex-row items-center justify-between gap-6 px-6 lg:px-16 shadow-xl">
                 <div className="text-center md:text-left">
-                    <p className="text-gray-200 text-sm mb-1 tracking-wide">
+                    <p className="text-gray-200 text-lg mb-2 tracking-wide font-medium">
                         Welcome back,
                     </p>
-                    <h1 className="text-4xl lg:text-5xl font-extrabold text-white leading-tight drop-shadow-md">
+                    <h1 className="text-4xl lg:text-5xl font-extrabold text-white leading-tight drop-shadow-md mb-2">
                         {userData.username}
                     </h1>
                     <p className="text-gray-300 mt-2 text-sm">{userData.email}</p>

@@ -1,0 +1,59 @@
+pipeline {
+    agent any
+
+    environment {
+        // Define Docker image name
+        DOCKER_IMAGE = 'my-backend:latest'
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                // Clone your Git repository (replace with your repo URL)
+                git 'https://github.com/your-username/your-repository.git'
+            }
+        }
+
+        stage('Build Backend Docker Image') {
+            steps {
+                script {
+                    // Build Docker image for your backend
+                    sh 'docker build -t $DOCKER_IMAGE ./backend'
+                }
+            }
+        }
+
+        stage('Build Frontend Docker Image') {
+            steps {
+                script {
+                    // Build Docker image for your frontend
+                    sh 'docker build -t my-frontend:latest ./frontend'
+                }
+            }
+        }
+
+        stage('Run Backend and Frontend Containers') {
+            steps {
+                script {
+                    // Run your backend and frontend containers
+                    sh 'docker run -d -p 8800:8800 $DOCKER_IMAGE'
+                    sh 'docker run -d -p 5173:5173 my-frontend:latest'
+                }
+            }
+        }
+
+        stage('Clean Up') {
+            steps {
+                // Clean up containers after the job is done
+                sh 'docker container prune -f'
+            }
+        }
+    }
+
+    post {
+        always {
+            // Cleanup after the job
+            cleanWs()
+        }
+    }
+}

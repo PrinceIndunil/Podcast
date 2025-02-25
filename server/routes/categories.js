@@ -23,9 +23,9 @@ router.post("/add-category", async (req, res) => {
         // Create and save the new category
         const newCategory = new Cat({
             categoryName,
-            color, // Optional field
-            image, // Optional field
-            podcasts, // Optional field
+            color, 
+            image, 
+            podcasts, 
         });
         const savedCategory = await newCategory.save();
 
@@ -37,5 +37,7 @@ router.post("/add-category", async (req, res) => {
         res.status(500).json({ message: "Error adding category", error: error.message });
     }
 });
+
+
 
 module.exports = router;

@@ -32,6 +32,10 @@ app.use("/api/v1", userApi)
 app.use("/api/v1", CatApi)
 app.use("/api/v1", PodcastApi)
 
+app.get("/", (req, res) => {
+    res.send("Server is running inside Docker!");
+});
+
 app.listen(process.env.PORT,()=>{
     console.log(`Server started on port : ${process.env.PORT}`);
 });

@@ -13,7 +13,7 @@ RUN npm ci
 # Copy the rest of the project files
 COPY . .
 
-EXPOSE 5174 
+EXPOSE 5173 
 
 # Set environment variables to allow Vite to work in a container
 ENV HOST=0.0.0.0

@@ -4,15 +4,15 @@ import axios from "axios";
 import PodcastCard from "../PodcastCard/PodcastCard";
 
 const MyPodcast = () => {
-    const [Podcasts, setPodcasts] = useState([]); // ✅ Initialize as an empty array
+    const [Podcasts, setPodcasts] = useState([]); // Initialize as an empty array
 
     useEffect(() => {
-        const fetchPodcasts = async () => {  // ✅ Renamed for clarity
+        const fetchPodcasts = async () => {  // Renamed for clarity
             try {
                 const res = await axios.get("http://localhost:8800/api/v1/get-user-podcasts", 
                 {withCredentials:true}
             );
-                setPodcasts(res.data.data || []); // ✅ Fallback in case `data` is undefined
+                setPodcasts(res.data.data || []); // Fallback in case `data` is undefined
             } catch (error) {
                 console.error("Error fetching podcasts:", error);
             }

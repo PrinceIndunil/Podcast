@@ -22,6 +22,10 @@ const user = new mongoose.Schema({
             ref : "podcasts",
         },
     ],
+    watchedPodcasts: {
+        type: [mongoose.Types.ObjectId],
+        ref: "podcasts", 
+    },
      
 },
 {timestamps : true}

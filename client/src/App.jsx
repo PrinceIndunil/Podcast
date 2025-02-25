@@ -14,6 +14,7 @@ import AddPodcast from './pages/AddPodcast.jsx';
 import AllPodcasts from './pages/AllPodcasts.jsx';
 import CategoriesPage from './pages/CategoriesPages.jsx';
 import DescriptionPage from './pages/DescriptionPage.jsx';
+import Library from './pages/WatchHistory.jsx';
 
 const App = () => {
   const dispatch = useDispatch();
@@ -43,6 +44,7 @@ const App = () => {
             <Route path="/profile" element={<Profile/>}/>
             <Route path="/add-podcast" element={<AddPodcast/>}/>
             <Route path="/all-podcasts" element={<AllPodcasts/>}/>
+            <Route path="/library" element={<Library/>}/>
             <Route path="/categories/:cat" element={<CategoriesPage/>} />
             <Route path="/description/:id" element={<DescriptionPage/>} />
           </Route>
