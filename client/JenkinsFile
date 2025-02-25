@@ -2,32 +2,33 @@ pipeline {
     agent any
 
     environment {
-        // Define Docker image name
-        DOCKER_IMAGE = 'my-backend:latest'
+        BACKEND_IMAGE = 'tube-server'
+        FRONTEND_IMAGE = 'tube-client'
     }
 
     stages {
         stage('Clone Repository') {
             steps {
-                // Clone your Git repository (replace with your repo URL)
-                git 'https://github.com/your-username/your-repository.git'
+                git 'https://github.com/PrinceIndunil/Podcast.git'
             }
         }
 
-        stage('Build Backend Docker Image') {
+        stage('Build Docker Images') {
             steps {
                 script {
-                    // Build Docker image for your backend
-                    sh 'docker build -t $DOCKER_IMAGE ./backend'
+                    // Build backend & frontend images
+                    sh "docker build -t $BACKEND_IMAGE ./backend"
+                    sh "docker build -t $FRONTEND_IMAGE ./frontend"
                 }
             }
         }
 
-        stage('Build Frontend Docker Image') {
+        stage('Stop Existing Containers') {
             steps {
                 script {
-                    // Build Docker image for your frontend
-                    sh 'docker build -t my-frontend:latest ./frontend'
+                    // Stop and remove existing containers if they are running
+                    sh "docker rm -f tube-server-1 || true"
+                    sh "docker rm -f tube-client-1 || true"
                 }
             }
         }
@@ -35,16 +36,15 @@ pipeline {
         stage('Run Backend and Frontend Containers') {
             steps {
                 script {
-                    // Run your backend and frontend containers
-                    sh 'docker run -d -p 8800:8800 $DOCKER_IMAGE'
-                    sh 'docker run -d -p 5173:5173 my-frontend:latest'
+                    // Run backend & frontend with existing container names
+                    sh "docker run -d --name tube-server-1 -p 8800:8800 $BACKEND_IMAGE"
+                    sh "docker run -d --name tube-client-1 -p 5173:5173 $FRONTEND_IMAGE"
                 }
             }
         }
 
-        stage('Clean Up') {
+        stage('Clean Up Unused Containers') {
             steps {
-                // Clean up containers after the job is done
                 sh 'docker container prune -f'
             }
         }
@@ -52,7 +52,6 @@ pipeline {
 
     post {
         always {
-            // Cleanup after the job
             cleanWs()
         }
     }
