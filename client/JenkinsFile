@@ -36,7 +36,7 @@ pipeline {
         stage('Run Backend and Frontend Containers') {
             steps {
                 script {
-                    // Run backend & frontend with existing container names
+                    
                     sh "docker run -d --name tube-server-1 -p 8800:8800 $BACKEND_IMAGE"
                     sh "docker run -d --name tube-client-1 -p 5173:5173 $FRONTEND_IMAGE"
                 }

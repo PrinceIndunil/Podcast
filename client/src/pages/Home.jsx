@@ -40,7 +40,7 @@ const Home = () => {
         <div className="mb-6 sm:mb-0 lg:ml-[50px]">
           <p className="text-xl font-semibold text-[#4b0082]">
             Listen to the most popular podcasts on one platform - {" "}
-            <b>MyTube</b>
+            <b>yTube</b>
           </p>
           
           <button className="px-6 py-4 bg-[#A19AD3] text-white font-semibold rounded-full mt-8 transform transition-all hover:scale-105 hover:bg-[#7f83b5]">
