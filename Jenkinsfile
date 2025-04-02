@@ -60,7 +60,11 @@ EOF
                             ssh -o StrictHostKeyChecking=no -i "$SSH_KEY_FILE" "$EC2_USER@$EC2_IP" <<EOF
                             # Ensure dependencies are installed
                             sudo apt-get update -y
-                            sudo apt-get install -y git docker.io docker-compose
+                            sudo apt-get install -y git docker.io
+                            sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+                            sudo chmod +x /usr/local/bin/docker-compose
+                            ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+
 
                             # Clone the repo again after cleaning the directory
                             cd $REPO_DIR
