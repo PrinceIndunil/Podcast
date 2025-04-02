@@ -17,7 +17,11 @@ pipeline {
                     withCredentials([sshUserPrivateKey(credentialsId: 'quizit-ssh', keyFileVariable: 'SSH_KEY_FILE')]) {
                         sh """
                             ssh -o StrictHostKeyChecking=no -i "$SSH_KEY_FILE" "$EC2_USER@$EC2_IP" <<EOF
-                            # Remove the existing repo directory if it exists
+                            # Ensure dependencies are installed
+                            sudo apt-get update -y
+                            sudo apt-get install -y git docker.io
+
+                            # Remove existing repo if needed
                             rm -rf $REPO_DIR
 
                             # Clone the repository
@@ -33,7 +37,7 @@ EOF
             steps {
                 script {
                     sh 'docker build -t "$DOCKER_IMAGE_BACKEND" ./server'
-                    sh 'docker build -t "$DOCKER_IMAGE_FRONTEND" ./client'
+                    sh 'docker build -t "$DOCKER_IMAGE_FRONTEND" ./frontend'
                 }
             }
         }
@@ -52,7 +56,7 @@ EOF
             }
         }
 
-        stage('Clone Repo on EC2') {
+        stage('Setup and Clone on EC2') {
             steps {
                 script {
                     withCredentials([sshUserPrivateKey(credentialsId: 'quizit-ssh', keyFileVariable: 'SSH_KEY_FILE')]) {
@@ -61,14 +65,23 @@ EOF
                             # Ensure dependencies are installed
                             sudo apt-get update -y
                             sudo apt-get install -y git docker.io
-                            sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-                            sudo chmod +x /usr/local/bin/docker-compose
-                            ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
 
+                            # Install Docker Compose if not exists
+                            if ! [ -x "\$(command -v docker-compose)" ]; then
+                                sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-\$(uname -s)-\$(uname -m)" -o /usr/local/bin/docker-compose
+                                sudo chmod +x /usr/local/bin/docker-compose
+                                sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+                            fi
 
-                            # Clone the repo again after cleaning the directory
-                            cd $REPO_DIR
-                            git pull
+                            # Clone or pull latest changes
+                            if [ -d "$REPO_DIR/.git" ]; then
+                                cd $REPO_DIR
+                                git reset --hard
+                                git pull
+                            else
+                                rm -rf $REPO_DIR
+                                git clone ${GITHUB_REPO} $REPO_DIR
+                            fi
 EOF
                         """
                     }
@@ -85,17 +98,17 @@ EOF
                                 # Navigate to repo
                                 cd $REPO_DIR
 
-                                # Ensure .env file for backend exists in server/
-                                if [ ! -f $REPO_DIR/server/.env ]; then
+                                # Ensure .env file for backend exists
+                                if [ ! -f server/.env ]; then
                                     echo "Creating .env file for backend..."
-                                    echo "API_KEY=your_value_here" > $REPO_DIR/server/.env  # Replace with actual values
+                                    echo "API_KEY=your_value_here" > server/.env  # Replace with actual values
                                 fi
 
                                 # Ensure frontend .env file exists
-                                echo "VITE_API_URL=http://${EC2_IP}:5173" > $REPO_DIR/frontend/.env
+                                echo "VITE_API_URL=http://${EC2_IP}:5173" > frontend/.env
 
                                 # Build frontend
-                                cd $REPO_DIR/frontend
+                                cd frontend
                                 rm -rf dist node_modules
                                 npm install
                                 npm run build
