@@ -13,7 +13,19 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git branch: 'main', url: "${GITHUB_REPO}"
+                script {
+                    withCredentials([sshUserPrivateKey(credentialsId: 'quizit-ssh', keyFileVariable: 'SSH_KEY_FILE')]) {
+                        sh """
+                            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY_FILE" "$EC2_USER@$EC2_IP" <<EOF
+                            # Remove the existing repo directory if it exists
+                            rm -rf $REPO_DIR
+
+                            # Clone the repository
+                            git clone ${GITHUB_REPO} $REPO_DIR
+EOF
+                        """
+                    }
+                }
             }
         }
 
@@ -50,13 +62,9 @@ pipeline {
                             sudo apt-get update -y
                             sudo apt-get install -y git docker.io docker-compose
 
-                            # Clone or pull the latest repo
-                            if [ -d "$REPO_DIR" ]; then
-                                cd $REPO_DIR
-                                git pull
-                            else
-                                git clone ${GITHUB_REPO} $REPO_DIR
-                            fi
+                            # Clone the repo again after cleaning the directory
+                            cd $REPO_DIR
+                            git pull
 EOF
                         """
                     }
