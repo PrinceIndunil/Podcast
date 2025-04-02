@@ -6,7 +6,7 @@ pipeline {
         DOCKER_IMAGE_BACKEND = 'loveprince423/tube-server'
         DOCKER_IMAGE_FRONTEND = 'loveprince423/tube-client'
         EC2_USER = 'ubuntu'
-        EC2_IP = '13.60.222.255'
+        EC2_IP = '13.60.226.71'
         REPO_DIR = '~/Podcast-Deploy' 
     }
 
