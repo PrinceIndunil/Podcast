@@ -10,7 +10,7 @@ const Home = () => {
 
         <div className="w-full lg:w-5/6 text-center lg:text-left lg:ml-[50px] mt-6 sm:mt-8 lg:mt-0">
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold text-[#4b0082]">
-            Create & listen to the
+            to the
             <br />
             <h1 className="flex items-end justify-center lg:justify-start text-[#6A5ACD]">
               P <span><img src={headphone} alt="headphone" className="h-12 sm:h-16 lg:h-20 transform transition-transform hover:scale-110" /></span>dcast
