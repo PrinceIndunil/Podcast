@@ -6,7 +6,8 @@ pipeline {
         DOCKER_IMAGE_BACKEND = 'loveprince423/tube-server'
         DOCKER_IMAGE_FRONTEND = 'loveprince423/tube-client'
         EC2_USER = 'ubuntu'
-        EC2_IP = '16.171.200.66'
+        EC2_IP = '13.60.222.255'
+        REPO_DIR = '~/Podcast-Deploy' 
     }
 
     stages {
@@ -50,11 +51,11 @@ pipeline {
                             sudo apt-get install -y git docker.io docker-compose
 
                             # Clone or pull the latest repo
-                            if [ -d "~/Quizit-Web-Project" ]; then
-                                cd ~/Quizit-Web-Project
+                            if [ -d "$REPO_DIR" ]; then
+                                cd $REPO_DIR
                                 git pull
                             else
-                                git clone ${GITHUB_REPO} ~/Quizit-Web-Project
+                                git clone ${GITHUB_REPO} $REPO_DIR
                             fi
 EOF
                         """
@@ -70,13 +71,19 @@ EOF
                         sh """
                             ssh -o StrictHostKeyChecking=no -i "$SSH_KEY_FILE" "$EC2_USER@$EC2_IP" <<EOF
                                 # Navigate to repo
-                                cd ~/Quizit-Web-Project
+                                cd $REPO_DIR
 
-                                # Update frontend .env file
-                                echo "VITE_API_URL=http://${EC2_IP}:5173" > ~/Quizit-Web-Project/frontend/.env
+                                # Ensure .env file for backend exists in server/
+                                if [ ! -f $REPO_DIR/server/.env ]; then
+                                    echo "Creating .env file for backend..."
+                                    echo "API_KEY=your_value_here" > $REPO_DIR/server/.env  # Replace with actual values
+                                fi
+
+                                # Ensure frontend .env file exists
+                                echo "VITE_API_URL=http://${EC2_IP}:5173" > $REPO_DIR/frontend/.env
 
                                 # Build frontend
-                                cd ~/Quizit-Web-Project/frontend
+                                cd $REPO_DIR/frontend
                                 rm -rf dist node_modules
                                 npm install
                                 npm run build
@@ -85,8 +92,8 @@ EOF
                                 docker pull "$DOCKER_IMAGE_BACKEND"
                                 docker pull "$DOCKER_IMAGE_FRONTEND"
 
-                                # Start containers
-                                cd ~/Quizit-Web-Project
+                                # Restart containers
+                                cd $REPO_DIR
                                 docker-compose down
                                 docker-compose up -d
 EOF
