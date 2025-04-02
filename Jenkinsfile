@@ -37,7 +37,7 @@ EOF
             steps {
                 script {
                     sh 'docker build -t "$DOCKER_IMAGE_BACKEND" ./server'
-                    sh 'docker build -t "$DOCKER_IMAGE_FRONTEND" ./frontend'
+                    sh 'docker build -t "$DOCKER_IMAGE_FRONTEND" ./client'
                 }
             }
         }
