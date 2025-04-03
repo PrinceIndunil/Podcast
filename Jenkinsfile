@@ -66,7 +66,7 @@ pipeline {
                                 
                                 # Install Docker Compose if not exists
                                 if ! command -v docker-compose &> /dev/null; then
-                                    sudo curl -L \\\"https://github.com/docker/compose/releases/latest/download/docker-compose-\\\$(uname -s)-\\\$(uname -m)\\\" -o /usr/local/bin/docker-compose
+                                    sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
                                     sudo chmod +x /usr/local/bin/docker-compose
                                     sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
                                 fi
@@ -75,7 +75,7 @@ pipeline {
                                 mkdir -p ${REPO_DIR}
                                 
                                 # Handle the repository - clean approach
-                                if [ -d \\\"${REPO_DIR}/.git\\\" ]; then
+                                if [ -d "${REPO_DIR}/.git" ]; then
                                     # Backup any existing .env files
                                     [ -f ${REPO_DIR}/client/.env ] && cp ${REPO_DIR}/client/.env ${REPO_DIR}/client/.env.backup
                                     [ -f ${REPO_DIR}/server/.env ] && cp ${REPO_DIR}/server/.env ${REPO_DIR}/server/.env.backup
@@ -93,28 +93,33 @@ pipeline {
                                     rm -rf ${REPO_DIR}
                                     git clone ${GITHUB_REPO} ${REPO_DIR}
                                 fi
-                                
-                                # Ensure server .env file exists with correct URL
-                                echo \\\"SERVER_URL=http://${EC2_IP}:8800\\\" > ${REPO_DIR}/server/.env
+
+                                # Ensure server .env file exists with correct URL and MongoDB URI
+                                withCredentials([usernamePassword(credentialsId: 'mongo-credentials', 
+                                                                   usernameVariable: 'MONGO_USER', 
+                                                                   passwordVariable: 'MONGO_PASS')]) {
+                                    echo "SERVER_URL=http://${EC2_IP}:8800" > ${REPO_DIR}/server/.env
+                                    echo "MONGO_URI=mongodb+srv://${MONGO_USER}:${MONGO_PASS}@cluster0.3arcf.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0" >> ${REPO_DIR}/server/.env
+                                }
                                 
                                 # Ensure client .env file exists with correct API URL
-                                echo \\\"VITE_API_URL=http://${EC2_IP}:8800\\\" > ${REPO_DIR}/client/.env
+                                echo "VITE_API_URL=http://${EC2_IP}:8800" > ${REPO_DIR}/client/.env
                                 
                                 # Create docker-compose.yml file
                                 cat > ${REPO_DIR}/docker-compose.yml << EOC
-version: \\\"3\\\"
+version: "3"
 services:
   backend:
     image: ${DOCKER_IMAGE_BACKEND}
     ports:
-      - \\\"8800:8800\\\"
+      - "8800:8800"
     env_file:
       - ./server/.env
     restart: unless-stopped
   frontend:
     image: ${DOCKER_IMAGE_FRONTEND}
     ports:
-      - \\\"5173:5173\\\"
+      - "5173:5173"
     env_file:
       - ./client/.env
     depends_on:
@@ -123,14 +128,14 @@ services:
 EOC
                                 
                                 # Pull latest Docker images
-                                docker pull \\\"${DOCKER_IMAGE_BACKEND}\\\"
-                                docker pull \\\"${DOCKER_IMAGE_FRONTEND}\\\"
+                                docker pull ${DOCKER_IMAGE_BACKEND}
+                                docker pull ${DOCKER_IMAGE_FRONTEND}
                                 
                                 # Deploy with docker-compose
                                 cd ${REPO_DIR}
                                 docker-compose down
                                 docker-compose up -d
-                            \"
+                            \""
                         """
                     }
                 }
