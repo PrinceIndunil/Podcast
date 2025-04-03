@@ -1,16 +1,22 @@
-# Use a lightweight Node.js image
-FROM node:20-alpine
+# Build stage
+FROM node:20-alpine AS builder
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm ci
+RUN npm install --production
 
 COPY . .
 
-EXPOSE 5173 
+RUN npm run build
 
-ENV HOST=0.0.0.0
+# Serve with Nginx
+FROM nginx:alpine
 
-CMD ["npm", "run", "build"]
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Expose Vite's development port (5173)
+EXPOSE 5173
+
+CMD ["nginx", "-g", "daemon off;"]
