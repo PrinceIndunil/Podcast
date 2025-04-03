@@ -11,55 +11,13 @@ pipeline {
     }
 
     stages {
-        stage('Clone Repository') {
+        stage('Setup and Deploy on EC2') {
             steps {
                 script {
-                    withCredentials([sshUserPrivateKey(credentialsId: 'quizit-ssh', keyFileVariable: 'SSH_KEY_FILE')]) {
-                        sh """
-                            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY_FILE" "$EC2_USER@$EC2_IP" <<EOF
-                            # Ensure dependencies are installed
-                            sudo apt-get update -y
-                            sudo apt-get install -y git docker.io
-
-                            # Remove existing repo if needed
-                            rm -rf $REPO_DIR
-
-                            # Clone the repository
-                            git clone ${GITHUB_REPO} $REPO_DIR
-EOF
-                        """
-                    }
-                }
-            }
-        }
-
-        stage('Build Docker Images') {
-            steps {
-                script {
-                    sh 'docker build -t "$DOCKER_IMAGE_BACKEND" ./server'
-                    sh 'docker build -t "$DOCKER_IMAGE_FRONTEND" ./client'
-                }
-            }
-        }
-
-        stage('Push Docker Images to Docker Hub') {
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'quizit-dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh """
-                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                            docker push "$DOCKER_IMAGE_BACKEND"
-                            docker push "$DOCKER_IMAGE_FRONTEND"
-                        """
-                    }
-                }
-            }
-        }
-
-        stage('Setup and Clone on EC2') {
-            steps {
-                script {
-                    withCredentials([sshUserPrivateKey(credentialsId: 'quizit-ssh', keyFileVariable: 'SSH_KEY_FILE')]) {
+                    withCredentials([
+                        sshUserPrivateKey(credentialsId: 'quizit-ssh', keyFileVariable: 'SSH_KEY_FILE'),
+                        usernamePassword(credentialsId: 'quizit-dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')
+                    ]) {
                         sh """
                             ssh -o StrictHostKeyChecking=no -i "$SSH_KEY_FILE" "$EC2_USER@$EC2_IP" <<EOF
                             # Ensure dependencies are installed
@@ -82,45 +40,58 @@ EOF
                                 rm -rf $REPO_DIR
                                 git clone ${GITHUB_REPO} $REPO_DIR
                             fi
-EOF
-                        """
-                    }
-                }
-            }
-        }
+                            
+                            # Set up environment files with correct variable names and ports
+                            if [ ! -f $REPO_DIR/server/.env ]; then
+                                echo "Creating .env file for backend..."
+                                # Changed API_KEY to SERVER_URL with appropriate backend port
+                                echo "SERVER_URL=http://${EC2_IP}:8800" > $REPO_DIR/server/.env
+                            fi
+                            
+                            # Set frontend env to point to backend API port (8800)
+                            echo "VITE_API_URL=http://${EC2_IP}:8800" > $REPO_DIR/client/.env
+                            
+                            # Verify docker-compose.yml exists, or create a basic one if needed
+                            if [ ! -f $REPO_DIR/docker-compose.yml ]; then
+                                echo "Creating docker-compose.yml file..."
+                                cat > $REPO_DIR/docker-compose.yml <<EOC
+version: '3'
+services:
+  backend:
+    image: ${DOCKER_IMAGE_BACKEND}
+    ports:
+      - "8800:8800"
+    env_file:
+      - ./server/.env
+    restart: always
 
-        stage('Deploy to EC2') {
-            steps {
-                script {
-                    withCredentials([sshUserPrivateKey(credentialsId: 'quizit-ssh', keyFileVariable: 'SSH_KEY_FILE')]) {
-                        sh """
-                            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY_FILE" "$EC2_USER@$EC2_IP" <<EOF
-                                # Navigate to repo
-                                cd $REPO_DIR
-
-                                # Ensure .env file for backend exists
-                                if [ ! -f server/.env ]; then
-                                    echo "Creating .env file for backend..."
-                                    echo "API_KEY=http://${EC2_IP}:8800" > server/.env  # Replace with actual values
-                                fi
-
-                                # Ensure frontend .env file exists
-                                echo "VITE_API_URL=http://${EC2_IP}:5173" > client/.env
-
-                                # Build frontend
-                                cd frontend
-                                rm -rf dist node_modules
-                                npm install
-                                npm run build
-
-                                # Pull latest Docker images
-                                docker pull "$DOCKER_IMAGE_BACKEND"
-                                docker pull "$DOCKER_IMAGE_FRONTEND"
-
-                                # Restart containers
-                                cd $REPO_DIR
-                                docker-compose down
-                                docker-compose up -d
+  frontend:
+    image: ${DOCKER_IMAGE_FRONTEND}
+    ports:
+      - "80:80"
+    env_file:
+      - ./client/.env
+    depends_on:
+      - backend
+    restart: always
+EOC
+                            fi
+                            
+                            # Build and push Docker images
+                            cd $REPO_DIR
+                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                            
+                            # Build backend image
+                            docker build -t "$DOCKER_IMAGE_BACKEND" ./server
+                            docker push "$DOCKER_IMAGE_BACKEND"
+                            
+                            # Build frontend image
+                            docker build -t "$DOCKER_IMAGE_FRONTEND" ./client
+                            docker push "$DOCKER_IMAGE_FRONTEND"
+                            
+                            # Deploy using docker-compose
+                            docker-compose down
+                            docker-compose up -d
 EOF
                         """
                     }
