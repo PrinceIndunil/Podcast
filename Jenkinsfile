@@ -11,13 +11,41 @@ pipeline {
     }
 
     stages {
-        stage('Setup and Deploy on EC2') {
+        stage('Clone Repository on Jenkins') {
+            steps {
+                // Clone repo to Jenkins worker first
+                checkout([$class: 'GitSCM', branches: [[name: '*/main']], 
+                         userRemoteConfigs: [[url: "${GITHUB_REPO}"]]])
+            }
+        }
+
+        stage('Build Docker Images') {
             steps {
                 script {
-                    withCredentials([
-                        sshUserPrivateKey(credentialsId: 'quizit-ssh', keyFileVariable: 'SSH_KEY_FILE'),
-                        usernamePassword(credentialsId: 'quizit-dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')
-                    ]) {
+                    sh 'docker build -t "${DOCKER_IMAGE_BACKEND}" ./server'
+                    sh 'docker build -t "${DOCKER_IMAGE_FRONTEND}" ./client'
+                }
+            }
+        }
+
+        stage('Push Docker Images to Docker Hub') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'quizit-dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh """
+                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                            docker push "$DOCKER_IMAGE_BACKEND"
+                            docker push "$DOCKER_IMAGE_FRONTEND"
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Setup and Clone on EC2') {
+            steps {
+                script {
+                    withCredentials([sshUserPrivateKey(credentialsId: 'quizit-ssh', keyFileVariable: 'SSH_KEY_FILE')]) {
                         sh """
                             ssh -o StrictHostKeyChecking=no -i "$SSH_KEY_FILE" "$EC2_USER@$EC2_IP" <<EOF
                             # Ensure dependencies are installed
@@ -40,21 +68,37 @@ pipeline {
                                 rm -rf $REPO_DIR
                                 git clone ${GITHUB_REPO} $REPO_DIR
                             fi
-                            
-                            # Set up environment files with correct variable names and ports
-                            if [ ! -f $REPO_DIR/server/.env ]; then
-                                echo "Creating .env file for backend..."
-                                # Changed API_KEY to SERVER_URL with appropriate backend port
-                                echo "SERVER_URL=http://${EC2_IP}:8800" > $REPO_DIR/server/.env
-                            fi
-                            
-                            # Set frontend env to point to backend API port (8800)
-                            echo "VITE_API_URL=http://${EC2_IP}:8800" > $REPO_DIR/client/.env
-                            
-                            # Verify docker-compose.yml exists, or create a basic one if needed
-                            if [ ! -f $REPO_DIR/docker-compose.yml ]; then
-                                echo "Creating docker-compose.yml file..."
-                                cat > $REPO_DIR/docker-compose.yml <<EOC
+EOF
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to EC2') {
+            steps {
+                script {
+                    withCredentials([sshUserPrivateKey(credentialsId: 'quizit-ssh', keyFileVariable: 'SSH_KEY_FILE')]) {
+                        sh """
+                            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY_FILE" "$EC2_USER@$EC2_IP" <<EOF
+                                # Navigate to repo
+                                cd $REPO_DIR
+
+                                # Ensure .env file for backend exists
+                                if [ ! -f server/.env ]; then
+                                    echo "Creating .env file for backend..."
+                                    # Fix variable name to be more appropriate
+                                    echo "SERVER_URL=http://${EC2_IP}:8800" > server/.env
+                                fi
+
+                                # Ensure frontend .env file exists
+                                # Fix to point to backend API port instead of frontend dev port
+                                echo "VITE_API_URL=http://${EC2_IP}:8800" > client/.env
+
+                                # Verify docker-compose.yml exists, or create a basic one if needed
+                                if [ ! -f docker-compose.yml ]; then
+                                    echo "Creating docker-compose.yml file..."
+                                    cat > docker-compose.yml <<EOC
 version: '3'
 services:
   backend:
@@ -75,23 +119,15 @@ services:
       - backend
     restart: always
 EOC
-                            fi
-                            
-                            # Build and push Docker images
-                            cd $REPO_DIR
-                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                            
-                            # Build backend image
-                            docker build -t "$DOCKER_IMAGE_BACKEND" ./server
-                            docker push "$DOCKER_IMAGE_BACKEND"
-                            
-                            # Build frontend image
-                            docker build -t "$DOCKER_IMAGE_FRONTEND" ./client
-                            docker push "$DOCKER_IMAGE_FRONTEND"
-                            
-                            # Deploy using docker-compose
-                            docker-compose down
-                            docker-compose up -d
+                                fi
+
+                                # Pull latest Docker images
+                                docker pull "$DOCKER_IMAGE_BACKEND"
+                                docker pull "$DOCKER_IMAGE_FRONTEND"
+
+                                # Restart containers
+                                docker-compose down
+                                docker-compose up -d
 EOF
                         """
                     }
