@@ -7,7 +7,7 @@ pipeline {
         DOCKER_IMAGE_FRONTEND = 'loveprince423/tube-client'
         EC2_USER = 'ubuntu'
         EC2_IP = '13.60.226.71'
-        REPO_DIR = '~/Podcast-Deploy'
+        REPO_DIR = '/home/ubuntu/Podcast-Deploy' // updated path
     }
 
     stages {
@@ -52,6 +52,10 @@ pipeline {
                                 # Ensure dependencies are installed
                                 sudo apt-get update -y
                                 sudo apt-get install -y git docker.io curl
+
+                                # Start Docker if not already running
+                                sudo systemctl start docker
+                                sudo systemctl enable docker
 
                                 # Install Docker Compose if not exists
                                 if ! [ -x "\$(command -v docker-compose)" ]; then
@@ -127,6 +131,9 @@ pipeline {
                                 # Restart containers
                                 docker-compose down
                                 docker-compose up -d
+
+                                # Clean up unused images
+                                docker system prune -f
                             EOF
                         """
                     }
