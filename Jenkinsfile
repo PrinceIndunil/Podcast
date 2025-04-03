@@ -81,7 +81,7 @@ pipeline {
 
                                 # Ensure frontend .env file exists
                                 if ! grep -q "VITE_API_URL=" $REPO_DIR/client/.env; then
-                                    echo "VITE_API_URL=http://${EC2_IP}:8800" >> $REPO_DIR/client/.env
+                                    echo "VITE_API_URL=http://${EC2_IP}:8800" >> $REPO_DIR/server/.env
                                 fi
 
                                 # Verify docker-compose.yml exists, or create a basic one if needed
