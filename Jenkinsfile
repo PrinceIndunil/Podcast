@@ -7,7 +7,7 @@ pipeline {
         DOCKER_IMAGE_FRONTEND = 'loveprince423/tube-client'
         EC2_USER = 'ubuntu'
         EC2_IP = '13.60.226.71'
-        REPO_DIR = '/home/ubuntu/Podcast-Deploy' // updated path
+        REPO_DIR = '/home/ubuntu/Podcast-Deploy'
     }
 
     stages {
@@ -43,12 +43,12 @@ pipeline {
             }
         }
 
-        stage('Setup and Clone on EC2') {
+        stage('Setup and Deploy on EC2') {
             steps {
                 script {
                     withCredentials([sshUserPrivateKey(credentialsId: 'quizit-ssh', keyFileVariable: 'SSH_KEY_FILE')]) {
                         sh """
-                            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY_FILE" "$EC2_USER@$EC2_IP" <<EOF
+                            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY_FILE" "$EC2_USER@$EC2_IP" <<'EOF'
                                 # Ensure dependencies are installed
                                 sudo apt-get update -y
                                 sudo apt-get install -y git docker.io curl
@@ -73,36 +73,21 @@ pipeline {
                                     rm -rf $REPO_DIR
                                     git clone ${GITHUB_REPO} $REPO_DIR
                                 fi
-                            EOF
-                        """
-                    }
-                }
-            }
-        }
-
-        stage('Deploy to EC2') {
-            steps {
-                script {
-                    withCredentials([sshUserPrivateKey(credentialsId: 'quizit-ssh', keyFileVariable: 'SSH_KEY_FILE')]) {
-                        sh """
-                            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY_FILE" "$EC2_USER@$EC2_IP" <<EOF
-                                # Navigate to repo
-                                cd $REPO_DIR
 
                                 # Ensure backend .env file exists
-                                if [ ! -f server/.env ]; then
-                                    echo "SERVER_URL=http://${EC2_IP}:8800" > server/.env
+                                if [ ! -f $REPO_DIR/server/.env ]; then
+                                    echo "SERVER_URL=http://${EC2_IP}:8800" > $REPO_DIR/server/.env
                                 fi
 
                                 # Ensure frontend .env file exists
-                                if ! grep -q "VITE_API_URL=" client/.env; then
-                                    echo "VITE_API_URL=http://${EC2_IP}:8800" >> client/.env
+                                if ! grep -q "VITE_API_URL=" $REPO_DIR/client/.env; then
+                                    echo "VITE_API_URL=http://${EC2_IP}:8800" >> $REPO_DIR/client/.env
                                 fi
 
                                 # Verify docker-compose.yml exists, or create a basic one if needed
-                                if [ ! -f docker-compose.yml ]; then
+                                if [ ! -f $REPO_DIR/docker-compose.yml ]; then
                                     echo "Creating docker-compose.yml file..."
-                                    cat > docker-compose.yml <<EOC
+                                    cat > $REPO_DIR/docker-compose.yml <<EOC
                                     version: '3'
                                     services:
                                       backend:
@@ -131,9 +116,6 @@ pipeline {
                                 # Restart containers
                                 docker-compose down
                                 docker-compose up -d
-
-                                # Clean up unused images
-                                docker system prune -f
                             EOF
                         """
                     }
