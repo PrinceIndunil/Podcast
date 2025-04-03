@@ -34,7 +34,7 @@ pipeline {
                                   usernameVariable: 'DOCKER_USER', 
                                   passwordVariable: 'DOCKER_PASS')]) {
                         sh """
-                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                            echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
                             docker push ${DOCKER_IMAGE_BACKEND}
                             docker push ${DOCKER_IMAGE_FRONTEND}
                         """
@@ -48,75 +48,89 @@ pipeline {
                 script {
                     withCredentials([sshUserPrivateKey(credentialsId: 'quizit-ssh', keyFileVariable: 'SSH_KEY_FILE')]) {
                         sh """
-                            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY_FILE" "$EC2_USER@$EC2_IP" <<'EOF'
+                            ssh -o StrictHostKeyChecking=no -i "${SSH_KEY_FILE}" "${EC2_USER}@${EC2_IP}" '
                                 # Ensure dependencies are installed
                                 sudo apt-get update -y
-                                sudo apt-get install -y git docker.io curl
-
+                                
+                                # Check if Docker is installed, if not install it properly
+                                if ! command -v docker &> /dev/null; then
+                                    # Install Docker using the official script
+                                    sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+                                    curl -fsSL https://get.docker.com -o get-docker.sh
+                                    sudo sh get-docker.sh
+                                fi
+                                
                                 # Start Docker if not already running
                                 sudo systemctl start docker
                                 sudo systemctl enable docker
-
+                                
                                 # Install Docker Compose if not exists
-                                if ! [ -x "\$(command -v docker-compose)" ]; then
-                                    sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-\$(uname -s)-\$(uname -m)" -o /usr/local/bin/docker-compose
+                                if ! command -v docker-compose &> /dev/null; then
+                                    sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
                                     sudo chmod +x /usr/local/bin/docker-compose
-                                    sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+                                    sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
                                 fi
-
-                                # Clone or pull latest changes
-                                if [ -d "$REPO_DIR/.git" ]; then
-                                    cd $REPO_DIR
-                                    git reset --hard
-                                    git pull
+                                
+                                # Setup repository directory
+                                mkdir -p ${REPO_DIR}
+                                
+                                # Handle the repository - clean approach
+                                if [ -d "${REPO_DIR}/.git" ]; then
+                                    # Backup any existing .env files
+                                    [ -f ${REPO_DIR}/client/.env ] && cp ${REPO_DIR}/client/.env ${REPO_DIR}/client/.env.backup
+                                    [ -f ${REPO_DIR}/server/.env ] && cp ${REPO_DIR}/server/.env ${REPO_DIR}/server/.env.backup
+                                    
+                                    # Clean and update repository
+                                    cd ${REPO_DIR}
+                                    git fetch origin
+                                    git reset --hard origin/main
+                                    
+                                    # Restore backups if they exist
+                                    [ -f ${REPO_DIR}/client/.env.backup ] && cp ${REPO_DIR}/client/.env.backup ${REPO_DIR}/client/.env
+                                    [ -f ${REPO_DIR}/server/.env.backup ] && cp ${REPO_DIR}/server/.env.backup ${REPO_DIR}/server/.env
                                 else
-                                    rm -rf $REPO_DIR
-                                    git clone ${GITHUB_REPO} $REPO_DIR
+                                    # Fresh clone
+                                    rm -rf ${REPO_DIR}
+                                    git clone ${GITHUB_REPO} ${REPO_DIR}
                                 fi
-
-                                # Ensure backend .env file exists
-                                if [ ! -f $REPO_DIR/server/.env ]; then
-                                    echo "SERVER_URL=http://${EC2_IP}:8800" > $REPO_DIR/server/.env
-                                fi
-
-                                # Ensure frontend .env file exists
-                                if ! grep -q "VITE_API_URL=" $REPO_DIR/client/.env; then
-                                    echo "VITE_API_URL=http://${EC2_IP}:8800" >> $REPO_DIR/server/.env
-                                fi
-
-                                # Verify docker-compose.yml exists, or create a basic one if needed
-                                if [ ! -f $REPO_DIR/docker-compose.yml ]; then
-                                    echo "Creating docker-compose.yml file..."
-                                    cat > $REPO_DIR/docker-compose.yml <<EOC
-                                    version: '3'
-                                    services:
-                                      backend:
-                                        image: ${DOCKER_IMAGE_BACKEND}
-                                        ports:
-                                          - "8800:8800"
-                                        env_file:
-                                          - ./server/.env
-                                        restart: unless-stopped
-                                      frontend:
-                                        image: ${DOCKER_IMAGE_FRONTEND}
-                                        ports:
-                                          - "5173:5173"
-                                        env_file:
-                                          - ./client/.env
-                                        depends_on:
-                                          - backend
-                                        restart: unless-stopped
-                                    EOC
-                                fi
-
+                                
+                                # Ensure server .env file exists with correct URL
+                                echo "SERVER_URL=http://${EC2_IP}:8800" > ${REPO_DIR}/server/.env
+                                
+                                # Ensure client .env file exists with correct API URL
+                                echo "VITE_API_URL=http://${EC2_IP}:8800" > ${REPO_DIR}/client/.env
+                                
+                                # Create docker-compose.yml file
+                                cat > ${REPO_DIR}/docker-compose.yml << EOF
+version: "3"
+services:
+  backend:
+    image: ${DOCKER_IMAGE_BACKEND}
+    ports:
+      - "8800:8800"
+    env_file:
+      - ./server/.env
+    restart: unless-stopped
+  frontend:
+    image: ${DOCKER_IMAGE_FRONTEND}
+    ports:
+      - "5173:5173"
+    env_file:
+      - ./client/.env
+    depends_on:
+      - backend
+    restart: unless-stopped
+EOF
+                                
                                 # Pull latest Docker images
                                 docker pull "${DOCKER_IMAGE_BACKEND}"
                                 docker pull "${DOCKER_IMAGE_FRONTEND}"
-
-                                # Restart containers
+                                
+                                # Deploy with docker-compose
+                                cd ${REPO_DIR}
                                 docker-compose down
                                 docker-compose up -d
-                            EOF
+                            '
                         """
                     }
                 }
