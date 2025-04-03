@@ -101,11 +101,11 @@ EOF
                                 # Ensure .env file for backend exists
                                 if [ ! -f server/.env ]; then
                                     echo "Creating .env file for backend..."
-                                    echo "API_KEY=your_value_here" > server/.env  # Replace with actual values
+                                    echo "API_KEY=http://${EC2_IP}:8800" > server/.env  # Replace with actual values
                                 fi
 
                                 # Ensure frontend .env file exists
-                                echo "VITE_API_URL=http://${EC2_IP}:5173" > frontend/.env
+                                echo "VITE_API_URL=http://${EC2_IP}:5173" > client/.env
 
                                 # Build frontend
                                 cd frontend
