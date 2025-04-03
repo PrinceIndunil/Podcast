@@ -11,7 +11,7 @@ const CategoriesPage = () =>{
     useEffect(() => {
         const fetchPodcasts = async () => {  // Renamed for clarity
             try {
-                const res = await axios.get(`http://localhost:8800/api/v1//category/${cat}`, 
+                const res = await axios.get(`http://13.60.226.71:8800/api/v1//category/${cat}`, 
                 {withCredentials:true}
             );
                 setPodcasts(res.data.data || []); // Fallback in case `data` is undefined

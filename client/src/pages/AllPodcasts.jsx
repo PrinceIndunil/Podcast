@@ -9,7 +9,7 @@ const AllPodcasts = () => {
     useEffect(() => {
         const fetch = async () => {
             try {
-                const res = await axios.get("http://localhost:8800/api/v1/get-podcasts");
+                const res = await axios.get("http://13.60.226.71:8800/api/v1/get-podcasts");
                 setPodcasts(res.data.data);
             } catch (error) {
                 console.error("Error fetching podcasts:", error);

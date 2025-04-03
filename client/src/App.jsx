@@ -21,7 +21,7 @@ const App = () => {
   useEffect(() =>{
      const fetch = async () =>{
       try {
-        const res = await axios.get("http://localhost:8800/api/v1/check-cookie" , {
+        const res = await axios.get("http://13.60.226.71:8800/api/v1/check-cookie" , {
           withCredentials: true,
         });
         if(res.data.message){

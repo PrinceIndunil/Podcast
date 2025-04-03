@@ -14,7 +14,7 @@ const Header = () => {
     useEffect(() => {
         const fetchUserDetails = async () => {
             try {
-                const res = await axios.get("http://localhost:8800/api/v1/user-details", {
+                const res = await axios.get("http://13.60.226.71:8800/api/v1/user-details", {
                     withCredentials: true,
                 });
                 setUserData(res.data.user);
@@ -30,7 +30,7 @@ const Header = () => {
 
     const LogOutHandler = async () => {
         try {
-            await axios.post("http://localhost:8800/api/v1/logout", null, {
+            await axios.post("http://13.60.226.71:8800/api/v1/logout", null, {
                 withCredentials: true,
             });
             dispatch(authActions.logout());

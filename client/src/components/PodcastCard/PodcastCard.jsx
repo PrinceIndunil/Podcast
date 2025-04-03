@@ -15,11 +15,11 @@ const PodcastCard = ({ items }) => {
         if (!isLoggedIn) return; // Prevent execution if not logged in
 
         dispatch(playerActions.setDiv());
-        dispatch(playerActions.changeImage(`http://localhost:8800/${items.frontImage}`));
-        dispatch(playerActions.changeSong(`http://localhost:8800/${items.audioFile}`));
+        dispatch(playerActions.changeImage(`http://13.60.226.71:8800/${items.frontImage}`));
+        dispatch(playerActions.changeSong(`http://13.60.226.71:8800/${items.audioFile}`));
 
         try {
-            await axios.post("http://localhost:8800/api/v1/save-watched", {
+            await axios.post("http://13.60.226.71:8800/api/v1/save-watched", {
                 userId,
                 podcastId: items._id,
             });

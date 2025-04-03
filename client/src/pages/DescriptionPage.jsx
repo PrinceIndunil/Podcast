@@ -9,7 +9,7 @@ const DescriptionPage = () =>{
     useEffect(() => {
         const fetchPodcasts = async () => {  // Renamed for clarity
             try {
-                const res = await axios.get(`http://localhost:8800/api/v1/get-podcast/${id}`, 
+                const res = await axios.get(`http://13.60.226.71:8800/api/v1/get-podcast/${id}`, 
                 {withCredentials:true}
             );
                 setPodcasts(res.data.data || []); // Fallback in case `data` is undefined
@@ -22,7 +22,7 @@ const DescriptionPage = () =>{
     return(
         <div className="px-4 lg:px-12 py-4 h-auto flex flex-col md:flex-row items-start justify-between gap-4">
             {Podcasts && <><div className="w-2/6 flex items-center justify-center md:justify-start md:items-start">
-            <img src={`http://localhost:8800/${Podcasts.frontImage}`} 
+            <img src={`http://13.60.226.71:8800/${Podcasts.frontImage}`} 
             alt="/" 
             className="rounded size-[40vh] object-cover"/></div>
             <div className="w-4/6">

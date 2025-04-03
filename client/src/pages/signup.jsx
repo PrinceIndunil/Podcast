@@ -21,7 +21,7 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault(); 
     try {
-      const res = await axios.post("http://localhost:8800/api/v1/signup", Values);
+      const res = await axios.post("http://13.60.226.71:8800/api/v1/signup", Values);
       toast.success(res.data.message);
       toast.success("Signup successful!");
       navigate("/login");
