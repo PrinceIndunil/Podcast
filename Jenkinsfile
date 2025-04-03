@@ -21,8 +21,8 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 script {
-                    sh 'docker build -t $DOCKER_IMAGE_BACKEND ./server'
-                    sh 'docker build -t $DOCKER_IMAGE_FRONTEND ./client'
+                    sh 'docker build -t "$DOCKER_IMAGE_BACKEND" ./server'
+                    sh 'docker build -t "$DOCKER_IMAGE_FRONTEND" ./client'
                 }
             }
         }
@@ -35,8 +35,8 @@ pipeline {
                                   passwordVariable: 'DOCKER_PASS')]) {
                         sh """
                             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                            docker push $DOCKER_IMAGE_BACKEND
-                            docker push $DOCKER_IMAGE_FRONTEND
+                            docker push "$DOCKER_IMAGE_BACKEND"
+                            docker push "$DOCKER_IMAGE_FRONTEND"
                         """
                     }
                 }
@@ -56,38 +56,39 @@ pipeline {
                             ssh -o StrictHostKeyChecking=no -i "$SSH_KEY_FILE" "$EC2_USER@$EC2_IP" '
                                 set -e  # Exit on error
 
-                                # Install necessary dependencies
+                                # Update and install necessary dependencies
                                 sudo apt-get update -y
                                 sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
 
-                                # Install Docker if not already installed
+                                # Ensure Docker is installed
                                 if ! command -v docker &> /dev/null; then
                                     curl -fsSL https://get.docker.com | sudo sh
                                     sudo systemctl enable docker
                                     sudo systemctl start docker
                                 fi
 
-                                # Install latest Docker Compose
-                                sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-\\$(uname -s)-\\$(uname -m)" -o /usr/local/bin/docker-compose
-                                sudo chmod +x /usr/local/bin/docker-compose
+                                # Ensure Docker Compose is installed
+                                if ! command -v docker-compose &> /dev/null; then
+                                    sudo apt install docker-compose -y
+                                fi
 
-                                # Add current user to Docker group
+                                # Add current user to the Docker group
                                 sudo usermod -aG docker \$USER
 
-                                # Clone or update repo
+                                # Setup repository directory
                                 mkdir -p $REPO_DIR
                                 cd $REPO_DIR
 
+                                # Clone or update repository
                                 if [ -d "$REPO_DIR/.git" ]; then
+                                    git fetch origin
                                     git reset --hard origin/main
-                                    git pull origin main
                                 else
                                     rm -rf $REPO_DIR
                                     git clone $GITHUB_REPO $REPO_DIR
-                                    cd $REPO_DIR
                                 fi
 
-                                # Restore .env files
+                                # Restore or create .env files
                                 echo "SERVER_URL=http://$EC2_IP:8800" > $REPO_DIR/server/.env
                                 echo "MONGO_URI=$MONGO_URI" >> $REPO_DIR/server/.env
                                 echo "VITE_API_URL=http://$EC2_IP:8800" > $REPO_DIR/client/.env
@@ -102,9 +103,6 @@ services:
       - "8800:8800"
     env_file:
       - ./server/.env
-    environment:
-      - NODE_ENV=production
-      - MONGO_URI=${MONGO_URI}
     restart: unless-stopped
 
   frontend:
@@ -118,11 +116,11 @@ services:
     restart: unless-stopped
 EOC
 
-                                # Deploy Docker Containers
+                                # Pull latest images and clean up unused containers
                                 docker system prune -f
-                                docker-compose down
                                 docker-compose pull
-                                docker-compose up -d --remove-orphans
+                                docker-compose down
+                                docker-compose up -d
                             '
                         """
                     }
