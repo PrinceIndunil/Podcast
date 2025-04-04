@@ -33,7 +33,7 @@ const PodcastCard = ({ items }) => {
         <div className="border p-4 rounded flex flex-col shadow-xl hover:shadow-2xl transition-all duration-300">
             <Link to={`/description/${items._id}`}>
                 <img
-                    src={`http://localhost:8800/${items.frontImage}`}
+                    src={`http://13.60.226.71:8800/${items.frontImage}`}
                     className="rounded size-[42vh] object-cover"
                     alt={items.title || "Podcast Image"}
                 />

@@ -55,7 +55,7 @@ const InputPodcast = () => {
         data.append("audioFile", audioFile);
 
         try {
-            const res = await axios.post("http://localhost:8800/api/v1/add-podcast", data,
+            const res = await axios.post("http://13.60.226.71:8800/api/v1/add-podcast", data,
             {
                 headers:{
                     "Content-Type":"multipart/form-data",
