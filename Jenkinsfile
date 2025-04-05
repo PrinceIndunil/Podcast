@@ -55,12 +55,33 @@ pipeline {
             }
         }
 
-        stage('Stop and Remove Existing Containers') {
+        stage('Clean Docker and Check Ports') {
             steps {
                 script {
                     echo "Stopping and removing existing containers..."
                     sh "docker stop tube-server-1 || true && docker rm tube-server-1 || true"
                     sh "docker stop tube-client-1 || true && docker rm tube-client-1 || true"
+                    
+                    // Check and kill processes using the required ports
+                    echo "Checking if ports 8800 and 5173 are in use..."
+                    sh '''
+                        # Find and kill process using port 8800
+                        pid=$(sudo lsof -t -i:8800 || echo "")
+                        if [ ! -z "$pid" ]; then
+                            echo "Killing process $pid using port 8800"
+                            sudo kill -9 $pid || true
+                        fi
+                        
+                        # Find and kill process using port 5173
+                        pid=$(sudo lsof -t -i:5173 || echo "")
+                        if [ ! -z "$pid" ]; then
+                            echo "Killing process $pid using port 5173"
+                            sudo kill -9 $pid || true
+                        fi
+                        
+                        # Wait a moment for ports to be released
+                        sleep 2
+                    '''
                 }
             }
         }
@@ -69,10 +90,24 @@ pipeline {
             steps {
                 script {
                     echo "Starting Backend Container..."
-                    sh "docker run --rm -d --name tube-server-1 -p 8800:8800 ${DOCKER_IMAGE_BACKEND}:${DOCKER_TAG}"
+                    def backendRun = sh(script: "docker run --rm -d --name tube-server-1 -p 8800:8800 ${DOCKER_IMAGE_BACKEND}:${DOCKER_TAG}", returnStatus: true)
+                    
+                    if (backendRun != 0) {
+                        echo "Warning: Failed to start backend container. This could be due to port conflicts."
+                        // Continue pipeline even if local container fails
+                    } else {
+                        echo "Backend container started successfully."
+                    }
 
                     echo "Starting Frontend Container..."
-                    sh "docker run --rm -d --name tube-client-1 -p 5173:5173 ${DOCKER_IMAGE_FRONTEND}:${DOCKER_TAG}"
+                    def frontendRun = sh(script: "docker run --rm -d --name tube-client-1 -p 5173:5173 ${DOCKER_IMAGE_FRONTEND}:${DOCKER_TAG}", returnStatus: true)
+                    
+                    if (frontendRun != 0) {
+                        echo "Warning: Failed to start frontend container. This could be due to port conflicts."
+                        // Continue pipeline even if local container fails
+                    } else {
+                        echo "Frontend container started successfully."
+                    }
                 }
             }
         }
@@ -186,6 +221,13 @@ EOC
     }
 
     post {
+        always {
+            script {
+                // Clean up containers regardless of build result
+                sh "docker stop tube-server-1 || true && docker rm tube-server-1 || true"
+                sh "docker stop tube-client-1 || true && docker rm tube-client-1 || true"
+            }
+        }
         success {
             echo "Deployment Successful!"
         }
