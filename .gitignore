@@ -1,3 +1,11 @@
 server/.env
 docker-compose.yml
 server/uploads/
+.terraform
+.terraform.lock.hcl
+key1.pem
+LICENSE.txt
+podcast_key.pem
+terraform.tfstate
+terraform.tfstate.backup
+terraform/terraform.tfvars

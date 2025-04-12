@@ -94,7 +94,6 @@ pipeline {
                     
                     if (backendRun != 0) {
                         echo "Warning: Failed to start backend container. This could be due to port conflicts."
-                        // Continue pipeline even if local container fails
                     } else {
                         echo "Backend container started successfully."
                     }
@@ -104,7 +103,6 @@ pipeline {
                     
                     if (frontendRun != 0) {
                         echo "Warning: Failed to start frontend container. This could be due to port conflicts."
-                        // Continue pipeline even if local container fails
                     } else {
                         echo "Frontend container started successfully."
                     }
@@ -223,7 +221,6 @@ EOC
     post {
         always {
             script {
-                // Clean up containers regardless of build result
                 sh "docker stop tube-server-1 || true && docker rm tube-server-1 || true"
                 sh "docker stop tube-client-1 || true && docker rm tube-client-1 || true"
             }
