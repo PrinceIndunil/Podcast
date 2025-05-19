@@ -57,7 +57,7 @@ resource "aws_security_group" "my_security_group" {
 resource "aws_instance" "my_instance" {
   ami           = "ami-00da1738201099b91" 
   instance_type = "t3.micro"
-  key_name      = "key1" # Replace with a valid key pair name
+  key_name      = "key1" 
 
   security_groups = [aws_security_group.my_security_group.name]
 

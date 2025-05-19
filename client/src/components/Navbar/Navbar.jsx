@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import Logo from '../../assets/microphone.png';
 import { IoReorderThreeOutline } from 'react-icons/io5';
 import { RxCross1 } from 'react-icons/rx';
 import { useSelector } from 'react-redux';
+import logo from "../../assets/headphone.png"
 
 const Navbar = () => {
-  const isLoggedIn = useSelector((state)=>state.auth.isLoggedIn);
+  const isLoggedIn = useSelector((state) => state.auth.isLoggedIn);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navLinks = [
@@ -14,97 +14,119 @@ const Navbar = () => {
     { name: 'Categories', path: '/categories' },
     { name: 'All Podcast', path: '/all-podcasts' },
     { name: 'Library', path: '/library' },
-    
   ];
 
   return (
-    <nav className="px-4 md:px-8 lg:px-12 py-2 relative">
-      <div className="flex items-center justify-between">
-        {/* Logo Section */}
-        <div className="logo brand-name w-2/6 flex items-center gap-4">
-          <img src={Logo} alt="MyTube Logo" className="h-12 mr-2" />
-          <Link to="/" className="text-2xl font-semibold">
-            MyTube
+    <nav className="bg-black text-white">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex justify-between h-16 items-center">
+          {/* Logo Section */}
+          <Link to="/" className="flex items-center space-x-2">
+            <img src={logo} className='w-10 h-10' />
+            <span className="text-red-600 text-2xl font-bold mr-2">My</span>
+            <span className="text-white text-2xl font-bold">Tube</span>
           </Link>
-        </div>
 
-        {/* Desktop Navigation Links */}
-        <div className="hidden lg:flex items-center justify-center w-2/6">
-          {navLinks.map((item, i) => (
-            <Link
-              key={i}
-              to={item.path}
-              className="ms-4 hover:font-semibold transition-all duration-300"
+          {/* Desktop Navigation Links */}
+          <div className="hidden md:flex items-center space-x-6">
+            {navLinks.map((item, i) => (
+              <Link 
+                key={i} 
+                to={item.path} 
+                className="text-gray-300 hover:text-white transition-colors duration-200"
+              >
+                {item.name}
+              </Link>
+            ))}
+          </div>
+
+          {/* Desktop Login & Signup Buttons */}
+          <div className="hidden md:flex items-center">
+            {!isLoggedIn ? (
+              <>
+                <Link 
+                  to="/login" 
+                  className="text-gray-300 hover:text-white px-3 py-2"
+                >
+                  Login
+                </Link>
+                <Link 
+                  to="/signup" 
+                  className="bg-red-600 text-white px-4 py-2 rounded-md ml-3 hover:bg-red-700"
+                >
+                  Signup
+                </Link>
+              </>
+            ) : (
+              <Link 
+                to="/profile" 
+                className="bg-gray-800 px-4 py-2 rounded-md hover:bg-gray-700"
+              >
+                Profile
+              </Link>
+            )}
+          </div>
+
+          {/* Mobile Menu Toggle */}
+          <div className="md:hidden">
+            <button
+              onClick={() => setIsMenuOpen((prev) => !prev)}
+              className="text-gray-300 hover:text-white focus:outline-none"
             >
-              {item.name}
-            </Link>
-          ))}
-        </div>
-
-        {/* Desktop Login & Signup Buttons */}
-        <div className="hidden lg:flex items-center justify-end w-2/6">
-          {!isLoggedIn && (
-            <>
-            {""}
-            <Link to="/login" className="px-6 py-3 border border-black rounded-full">
-            Login
-          </Link>
-          <Link to="/signup" className="ms-4 px-6 py-3 bg-black text-white rounded-full">
-            Signup
-          </Link>
-          </>
-          )}
-          {isLoggedIn && 
-          <Link to="/profile" className="ms-4 px-6 py-3 bg-black text-white rounded-full">
-          Profile
-        </Link>
-        }
-        </div>
-
-        {/* Mobile Menu Toggle */}
-        <div className="lg:hidden w-4/6 flex items-center justify-end z-[100]">
-          <button
-            className="text-4xl"
-            onClick={() => setIsMenuOpen((prev) => !prev)}
-          >
-            {isMenuOpen ? <RxCross1 /> : <IoReorderThreeOutline />}
-          </button>
+              {isMenuOpen ? 
+                <RxCross1 className="h-6 w-6" /> : 
+                <IoReorderThreeOutline className="h-7 w-7" />
+              }
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Mobile Menu */}
-      <div
-        className={`fixed left-0 top-0 w-full h-screen bg-blue-100 z-50 transition-all duration-500 ${
-          isMenuOpen ? 'translate-y-0' : '-translate-y-full'
-        }`}
-      >
-        <div className="h-full flex flex-col items-center justify-center">
-          {navLinks.map((item, i) => (
-            <Link
-              key={i}
-              to={item.path}
-              className="mb-6 text-3xl hover:font-semibold transition-all duration-300"
-              onClick={() => setIsMenuOpen(false)} // Close menu on link click
-            >
-              {item.name}
-            </Link>
-          ))}
-          <Link
-            to="/login"
-            className="mb-6 text-3xl hover:font-semibold transition-all duration-300"
-            onClick={() => setIsMenuOpen(false)}
-          >
-            Login
-          </Link>
-          <Link
-            to="/signup"
-            className="mb-6 text-3xl hover:font-semibold transition-all duration-300"
-            onClick={() => setIsMenuOpen(false)}
-          >
-            Signup
-          </Link>
+      {isMenuOpen && (
+        <div className="md:hidden bg-gray-900 px-2 pt-2 pb-4">
+          <div className="space-y-1">
+            {navLinks.map((item, i) => (
+              <Link
+                key={i}
+                to={item.path}
+                className="block px-3 py-2 text-gray-300 hover:bg-gray-800 hover:text-white rounded-md"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                {item.name}
+              </Link>
+            ))}
+            <div className="pt-4 border-t border-gray-800">
+              {!isLoggedIn ? (
+                <div className="flex flex-col space-y-2">
+                  <Link
+                    to="/login"
+                    className="block px-3 py-2 text-gray-300 hover:bg-gray-800 hover:text-white rounded-md"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to="/signup"
+                    className="block px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Signup
+                  </Link>
+                </div>
+              ) : (
+                <Link
+                  to="/profile"
+                  className="block px-3 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-700"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Profile
+                </Link>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </nav>
   );
 };

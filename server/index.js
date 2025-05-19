@@ -11,7 +11,7 @@ require("./connection/connection")
 
 app.use(cors({
     origin: (origin, callback) => {
-        const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174', 'http://13.60.226.71:5173'];
+        const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {

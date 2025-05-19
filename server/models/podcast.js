@@ -1,39 +1,49 @@
 const mongoose = require("mongoose");
 
 const podcasts = new mongoose.Schema({
-    frontImage: {
-        type: String,
-        // Ensure that the frontImage URL is unique (if that's your requirement)
-        unique: true, 
-        required: true,  // Ensures that the podcast must have a front image
-    },
-    audioFile: {
-        type: String,
-        // Ensure that the audioFile URL is unique (if that's your requirement)
-        unique: true, 
-        required: true,  // Ensures that the podcast must have an audio file
-    },
-    title: {
-        type: String,
-        // You might want to remove the `unique: true` if multiple podcasts can have the same title
-        unique: true,  
-        required: true,  // Ensures that the podcast must have a title
-    },
-    description: {
-        type: String,
-        // You might want to remove `unique: true` here too if multiple podcasts can have the same description
-        unique: true,  
-        required: true,  // Ensures that the podcast must have a description
-    },
-    user: {
-        type: mongoose.Types.ObjectId,
-        ref: "user",  // This links the podcast to a user
-        required: true,  // Ensure the podcast has a user associated with it (creator)
-    },
-    category: {
-        type: mongoose.Types.ObjectId,
-        ref: "category",  // This links the podcast to a category
-    },
-}, { timestamps: true });  // Adds `createdAt` and `updatedAt` fields automatically
+  frontImage: {
+    type: String,
+    unique: true,
+    required: true,
+  },
+  audioFile: {
+    type: String,
+    unique: true,
+    required: true,
+  },
+  title: {
+    type: String,
+    unique: true,
+    required: true,
+  },
+  description: {
+    type: String,
+    unique: true,
+    required: true,
+  },
+  user: {
+    type: mongoose.Types.ObjectId,
+    ref: "user",
+    required: true,
+  },
+  category: {
+    type: mongoose.Types.ObjectId,
+    ref: "category",
+  },
+
+  // ✅ Add the following fields:
+  episodes: {
+    type: Number,
+    default: 1, // You can adjust based on how episodes are managed
+  },
+  totalDuration: {
+    type: Number, // in seconds
+    default: 0,
+  },
+  listeners: {
+    type: Number,
+    default: 0,
+  },
+}, { timestamps: true });
 
 module.exports = mongoose.model("podcasts", podcasts);

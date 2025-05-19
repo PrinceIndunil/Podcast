@@ -45,6 +45,56 @@ router.post("/add-podcast", authMiddleware, upload, async (req, res) => {
     }
 });
 
+// Implement missing route for removing single item from watch history
+router.delete("/remove-watch-history/:podcastId/:userId", authMiddleware, async (req, res) => {
+    try {
+        const { podcastId, userId } = req.params;
+        
+        // Ensure user can only modify their own history
+        if (req.user._id.toString() !== userId) {
+            return res.status(403).json({ message: "Unauthorized access" });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        // Remove podcast from watched list
+        user.watchedPodcasts = user.watchedPodcasts.filter(
+            podcast => podcast.toString() !== podcastId
+        );
+        
+        await user.save();
+        res.status(200).json({ message: "Item removed from history successfully" });
+    } catch (error) {
+        console.error("Error removing podcast from history:", error);
+        res.status(500).json({ message: "Failed to remove from history" });
+    }
+});
+
+// Implement missing route for clearing entire watch history
+router.delete("/clear-watch-history/:userId", authMiddleware, async (req, res) => {
+    try {
+        const { userId } = req.params;
+        
+        // Ensure user can only modify their own history
+        if (req.user._id.toString() !== userId) {
+            return res.status(403).json({ message: "Unauthorized access" });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        // Clear watched podcasts array
+        user.watchedPodcasts = [];
+        
+        await user.save();
+        res.status(200).json({ message: "Watch history cleared successfully" });
+    } catch (error) {
+        console.error("Error clearing watch history:", error);
+        res.status(500).json({ message: "Failed to clear watch history" });
+    }
+});
+
 // Get all podcasts
 router.get("/get-podcasts", async (req, res) => {
     try {
@@ -111,21 +161,33 @@ router.get("/category/:cat", async (req, res) => {
 });
 
 // Save watched podcast
-router.post("/save-watched/:id", async (req, res) => {
+router.post("/save-watched/:id", authMiddleware, async (req, res) => {
     try {
-        const { podcastId } = req.body;
-        const user = await User.findById(req.user._id);
-
+        const { podcastId, progress, duration } = req.body;
+        const userId = req.params.id;
+        
+        const user = await User.findById(userId);
         if (!user) return res.status(404).json({ message: "User not found" });
 
-        if (user.watchedPodcasts.includes(podcastId)) {
-            return res.status(400).json({ message: "Podcast already marked as watched" });
+        // Create watchHistory object in User model if not exists
+        if (!user.watchHistory) {
+            user.watchHistory = {};
         }
 
-        user.watchedPodcasts.push(podcastId);
-        await user.save();
+        // Update watchHistory with progress and duration
+        user.watchHistory[podcastId] = {
+            progress: progress || 0,
+            duration: duration || 0,
+            watchedAt: new Date()
+        };
 
-        res.status(200).json({ message: "Podcast added to watched list" });
+        // Also add to watchedPodcasts array if not already there
+        if (!user.watchedPodcasts.includes(podcastId)) {
+            user.watchedPodcasts.push(podcastId);
+        }
+        
+        await user.save();
+        res.status(200).json({ message: "Watch progress saved successfully" });
     } catch (error) {
         console.error("Error saving watched podcast:", error);
         res.status(500).json({ message: "Internal server error" });
@@ -135,10 +197,11 @@ router.post("/save-watched/:id", async (req, res) => {
 // Get watched podcasts (Optimized)
 router.get("/get-watched/:id", async (req, res) => {
     try {
-        const user = await User.findById(req.user._id)
+        const user = await User.findById(req.params.id)
             .populate({
                 path: "watchedPodcasts",
-                select: "title category createdAt", // Limit fields
+                // Include all fields needed by frontend
+                select: "title description category createdAt frontImage audioFile duration progress watchedAt",
                 populate: { path: "category", select: "categoryName" },
             });
 
