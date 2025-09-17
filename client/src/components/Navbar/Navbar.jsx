@@ -13,6 +13,7 @@ const Navbar = () => {
     { name: 'Home', path: '/' },
     { name: 'Categories', path: '/categories' },
     { name: 'All Podcast', path: '/all-podcasts' },
+    { name: 'Episodes', path: '/episode' },
     { name: 'Library', path: '/library' },
   ];
 
@@ -40,7 +41,6 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* Desktop Login & Signup Buttons */}
           <div className="hidden md:flex items-center">
             {!isLoggedIn ? (
               <>

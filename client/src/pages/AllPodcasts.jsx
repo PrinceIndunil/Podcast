@@ -114,15 +114,13 @@ const AllPodcasts = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-slate-50 to-purple-50 pb-16">
-      {/* Hero Header Section with Enhanced Visuals */}
+      {/* Hero Header Section */}
       <div className="bg-gradient-to-r from-purple-800 via-indigo-800 to-purple-900 text-white pt-16 pb-32 px-4 relative overflow-hidden">
-        {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -right-10 -top-10 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute left-1/4 -bottom-20 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }}></div>
           <div className="absolute right-1/3 top-1/3 w-36 h-36 bg-indigo-400/20 rounded-full blur-2xl animate-pulse" style={{ animationDelay: "2s" }}></div>
-          
-          {/* Sound Wave Animation */}
+
           <div className="absolute bottom-0 left-0 right-0 h-16 opacity-20">
             <div className="flex items-end justify-center h-full gap-1">
               {Array(30).fill(0).map((_, i) => (
@@ -201,7 +199,6 @@ const AllPodcasts = () => {
 
             {/* View Toggle and Sort Controls */}
             <div className="flex items-center gap-4">
-              {/* Grid/List View Toggle */}
               <div className="bg-gray-100 rounded-lg p-1 flex gap-1">
                 <button 
                   onClick={() => setActiveView("grid")}
@@ -391,7 +388,6 @@ const AllPodcasts = () => {
         )}
       </div>
 
-      {/* CSS Animations */}
       <style jsx>{`
         @keyframes fadeIn {
           from {

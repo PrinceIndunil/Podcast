@@ -12,7 +12,6 @@ router.post("/add-category", async (req, res) => {
     try {
         console.log("Incoming request:", req.body);
 
-        // Check if the category already exists
         const existingCategory = await Cat.findOne({ categoryName });
         console.log("Existing category:", existingCategory);
 

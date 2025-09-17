@@ -1,9 +1,12 @@
 {
   "dependencies": {
     "@reduxjs/toolkit": "^2.5.0",
+    "axios": "^1.11.0",
     "cors": "^2.8.5",
     "framer-motion": "^12.11.0",
+    "google-auth-library": "^10.3.0",
     "lucide-react": "^0.510.0",
+    "nodemailer": "^7.0.6",
     "react-redux": "^9.2.0"
   }
 }

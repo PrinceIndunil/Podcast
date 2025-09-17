@@ -5,6 +5,7 @@ import { IoClose } from "react-icons/io5";
 import { RiFullscreenFill, RiFullscreenExitFill } from "react-icons/ri";
 import { useDispatch, useSelector } from "react-redux";
 import { playerActions } from "../../store/player";
+import axios from "axios";
 
 const AudioPlayer = () => {
   const [isSongPlaying, setIsSongPlaying] = useState(false);
@@ -15,6 +16,7 @@ const AudioPlayer = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
+  const [watchHistoryRecorded, setWatchHistoryRecorded] = useState(false);
 
   const dispatch = useDispatch();
   const PlayerDivState = useSelector((state) => state.player.isPlayerDiv);
@@ -23,9 +25,11 @@ const AudioPlayer = () => {
   const userId = useSelector((state) => state.auth.userId);
   const title = useSelector((state) => state.player.title) || "Unknown Track";
   const artist = useSelector((state) => state.player.artist) || "Unknown Artist";
+  const podcastId = useSelector((state) => state.player.podcastId);
 
   const audioRef = useRef();
   const progressRef = useRef();
+  const progressSaveInterval = useRef();
 
   const closeAudioPlayerDiv = () => {
     dispatch(playerActions.closeDiv());
@@ -33,7 +37,13 @@ const AudioPlayer = () => {
     dispatch(playerActions.changeSong(" "));
     setIsSongPlaying(false);
     setCurrentTime(0);
-    if (songPath && songPath !== " ") {
+    setWatchHistoryRecorded(false);
+    
+    if (progressSaveInterval.current) {
+      clearInterval(progressSaveInterval.current);
+    }
+    
+    if (songPath && songPath !== " " && podcastId && userId) {
       saveLastPlayed(songPath, currentTime);
     }
   };
@@ -42,29 +52,46 @@ const AudioPlayer = () => {
     if (!audioRef.current) return;
     if (isSongPlaying) {
       audioRef.current.pause();
+
+      if (progressSaveInterval.current) {
+        clearInterval(progressSaveInterval.current);
+      }
     } else {
       const playPromise = audioRef.current.play();
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
-            // Playback started successfully
-            savePlayEvent(songPath);
+            // Record initial watch history entry
+            if (!watchHistoryRecorded && podcastId && userId) {
+              recordWatchHistory(podcastId, userId);
+              setWatchHistoryRecorded(true);
+            }
+            startProgressSaving();
           })
           .catch(error => {
-            // Auto-play was prevented
-            console.error("Playback error:", error);
+            console.error("Playbook error:", error);
           });
       }
     }
     setIsSongPlaying(!isSongPlaying);
   };
 
+  const startProgressSaving = () => {
+    
+    if (progressSaveInterval.current) {
+      clearInterval(progressSaveInterval.current);
+    }
+    
+    progressSaveInterval.current = setInterval(() => {
+      if (audioRef.current && podcastId && userId && isSongPlaying) {
+        updateWatchProgress(podcastId, audioRef.current.currentTime, duration, userId);
+      }
+    }, 10000);
+  };
+
   const handleTimeUpdate = () => {
     const current = audioRef.current.currentTime;
     setCurrentTime(current);
-    if (Math.floor(current) % 10 === 0) {
-      saveProgress(songPath, current);
-    }
   };
 
   const handleLoadedMetadata = () => {
@@ -77,18 +104,33 @@ const AudioPlayer = () => {
     const newTime = seekPos * duration;
     audioRef.current.currentTime = newTime;
     setCurrentTime(newTime);
+    
+    // Update progress immediately after seeking
+    if (podcastId && userId) {
+      updateWatchProgress(podcastId, newTime, duration, userId);
+    }
   };
 
   const handleRangeSeek = (e) => {
     const newTime = (e.target.value / 100) * duration;
     audioRef.current.currentTime = newTime;
     setCurrentTime(newTime);
+    
+    // Update progress immediately after seeking
+    if (podcastId && userId) {
+      updateWatchProgress(podcastId, newTime, duration, userId);
+    }
   };
 
   const handleSkip = (secs) => {
     const newTime = Math.min(duration, Math.max(0, audioRef.current.currentTime + secs));
     audioRef.current.currentTime = newTime;
     setCurrentTime(newTime);
+    
+    // Update progress immediately after skipping
+    if (podcastId && userId) {
+      updateWatchProgress(podcastId, newTime, duration, userId);
+    }
   };
 
   const handleVolumeChange = (e) => {
@@ -126,40 +168,73 @@ const AudioPlayer = () => {
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
     }
+    
+    // Clear progress saving interval
+    if (progressSaveInterval.current) {
+      clearInterval(progressSaveInterval.current);
+    }
+    
+    // Mark as completed in watch history
+    if (podcastId && userId) {
+      updateWatchProgress(podcastId, duration, duration, userId, true);
+    }
   };
 
   useEffect(() => {
     const fetchProgress = async () => {
-      if (!userId || !songPath) return;
+      if (!userId || !podcastId) return;
       
       try {
-        const res = await fetch(`/api/progress/${userId}/${encodeURIComponent(songPath)}`);
-        if (!res.ok) throw new Error('Failed to fetch progress');
+        // Fetch existing watch progress
+        const res = await axios.get(`http://localhost:8800/api/v1/get-watched/${userId}`, {
+          withCredentials: true
+        });
         
-        const data = await res.json();
-        if (data.currentTime && audioRef.current) {
-          audioRef.current.currentTime = data.currentTime;
-          setCurrentTime(data.currentTime);
+        if (res.data.data && audioRef.current) {
+          const currentPodcast = res.data.data.find(p => p._id === podcastId);
+          if (currentPodcast && currentPodcast.progress > 0) {
+            audioRef.current.currentTime = currentPodcast.progress;
+            setCurrentTime(currentPodcast.progress);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch progress", err);
       }
     };
 
-    if (songPath && songPath !== " " && audioRef.current) {
+    if (songPath && songPath !== " " && audioRef.current && podcastId && userId) {
       fetchProgress();
       audioRef.current.volume = volume;
       audioRef.current.play()
         .then(() => {
           setIsSongPlaying(true);
-          savePlayEvent(songPath);
+          if (!watchHistoryRecorded) {
+            recordWatchHistory(podcastId, userId);
+            setWatchHistoryRecorded(true);
+          }
+          startProgressSaving();
         })
         .catch(error => {
           console.error("Auto-play failed:", error);
           setIsSongPlaying(false);
         });
     }
-  }, [songPath, userId]);
+
+    // Cleanup interval on component unmount
+    return () => {
+      if (progressSaveInterval.current) {
+        clearInterval(progressSaveInterval.current);
+      }
+    };
+  }, [songPath, userId, podcastId]);
+
+  // Cleanup interval when song changes
+  useEffect(() => {
+    setWatchHistoryRecorded(false);
+    if (progressSaveInterval.current) {
+      clearInterval(progressSaveInterval.current);
+    }
+  }, [podcastId]);
 
   if (!PlayerDivState) return null;
 
@@ -342,43 +417,52 @@ const formatTime = (time) => {
   return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
 };
 
-// Function to save play event to API
-const savePlayEvent = async (songPath) => {
-  if (!songPath || songPath === " ") return;
-  
-  const userId = window.store?.getState()?.auth?.userId;
-  if (!userId) return;
+// Fixed function to record initial watch history entry
+const recordWatchHistory = async (podcastId, userId) => {
+  if (!userId || !podcastId) {
+    console.error("Missing userId or podcastId");
+    return;
+  }
   
   try {
-    await fetch("/api/play-history", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        userId, 
-        songPath, 
-        timestamp: new Date().toISOString() 
-      })
-    });
+    console.log("Recording watch history for:", { podcastId, userId });
+    const response = await axios.post(
+      `http://localhost:8800/api/v1/save-watched/${userId}`,
+      {  
+        podcastId, 
+        progress: 0,
+        duration: 0,
+      },
+      { withCredentials: true }
+    );
+    console.log("Watch history recorded successfully:", response.data);
   } catch (error) {
-    console.error("Failed to save play event:", error);
+    console.error("Failed to record watch history:", error.response?.data || error.message);
   }
 };
 
-// Function to save progress to API
-const saveProgress = async (songPath, currentTime) => {
-  if (!songPath || songPath === " ") return;
-  
-  const userId = window.store?.getState()?.auth?.userId;
-  if (!userId) return;
+// Fixed function to update watch progress
+const updateWatchProgress = async (podcastId, currentTime, duration, userId, isCompleted = false) => {
+  if (!userId || !podcastId) {
+    console.error("Missing userId or podcastId");
+    return;
+  }
   
   try {
-    await fetch("/api/progress", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, songPath, currentTime })
-    });
+    console.log("Updating watch progress:", { podcastId, currentTime, duration, userId });
+    const response = await axios.put(
+      `http://localhost:8800/api/v1/save-watched/${userId}`,
+      {  
+        podcastId, 
+        progress: currentTime,
+        duration: duration,
+        isCompleted
+      },
+      { withCredentials: true }
+    );
+    console.log("Progress updated successfully:", response.data);
   } catch (error) {
-    console.error("Failed to save progress:", error);
+    console.error("Failed to update watch progress:", error.response?.data || error.message);
   }
 };
 
@@ -386,14 +470,11 @@ const saveProgress = async (songPath, currentTime) => {
 const saveLastPlayed = async (songPath, currentTime) => {
   if (!songPath || songPath === " ") return;
   
-  const userId = window.store?.getState()?.auth?.userId;
-  if (!userId) return;
-  
   try {
     await fetch("/api/last-played", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, songPath, currentTime })
+      body: JSON.stringify({ songPath, currentTime })
     });
   } catch (error) {
     console.error("Failed to save last played:", error);

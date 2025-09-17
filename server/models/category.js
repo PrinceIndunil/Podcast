@@ -8,11 +8,11 @@ const category = new mongoose.Schema({
     },
     color: {
         type: String,
-        default: "transparent", // You can define default colors if needed
+        default: "transparent",
     },
     image: {
         type: String,
-        default: "", // Path to the category's image
+        default: "", 
     },
     podcasts: [
         {

@@ -36,14 +36,12 @@ const Home = () => {
 
   return (
     <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 min-h-screen lg:h-[90vh] relative overflow-hidden flex flex-col items-center justify-center">
-      {/* Decorative elements */}
       <div className="absolute top-0 left-0 w-64 h-64 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
       <div className="absolute top-40 right-20 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
       <div className="absolute bottom-40 left-20 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
 
       <div className="w-full max-w-7xl mx-auto px-6 py-12 z-10">
         <div className={`w-full flex flex-col lg:flex-row items-center justify-between gap-10 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-          {/* Left column - Text content */}
           <div className="w-full lg:w-1/2 text-center lg:text-left space-y-6">
             <div className="space-y-4">
               <AnimatedText
@@ -105,7 +103,6 @@ const Home = () => {
             </div>
           </div>
 
-          {/* Right column - Image */}
           <div className="w-full lg:w-1/2 flex justify-center lg:justify-end items-center mt-12 lg:mt-0">
             <div className="relative">
               <div className="absolute -inset-4 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-full opacity-20 blur-xl"></div>
@@ -173,7 +170,6 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Scroll down button */}
       <div className="absolute bottom-10 right-10 hidden lg:block">
         <button
           onClick={scrollToSection}

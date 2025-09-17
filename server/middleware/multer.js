@@ -16,6 +16,7 @@ const upload = multer({
 }).fields([
     {name:"frontImage", maxCount:1},
     {name:"audioFile", maxCount:1},
+    { name: 'episodeImage', maxCount: 1 },
 ]);
 
 module.exports = upload;

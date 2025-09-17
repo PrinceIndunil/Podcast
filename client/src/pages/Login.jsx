@@ -4,6 +4,8 @@ import axios from "axios";
 import { Bounce, ToastContainer, toast } from 'react-toastify';
 import { useDispatch, useSelector } from "react-redux";
 import { authActions } from "../store/auth";
+import { signInWithPopup } from 'firebase/auth';
+import { auth, provider } from '../firebase';
 import Error from "./Error";
 
 const Login = () => {
@@ -17,6 +19,7 @@ const Login = () => {
   });
   
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [appear, setAppear] = useState(false);
   
   useEffect(() => {
@@ -39,13 +42,11 @@ const Login = () => {
         { withCredentials: true }
       );
       
-      // Success animation
       toast.success("Login successful!", {
         position: "top-center",
         autoClose: 1500,
       });
       
-      // Small delay for better UX with the success message
       setTimeout(() => {
         dispatch(authActions.login());
         navigate("/profile");
@@ -59,6 +60,52 @@ const Login = () => {
         toast.error("No response from server. Please try again later.");
       } else {
         toast.error("An unexpected error occurred. Please try again.");
+      }
+    }
+  };
+
+  // Google Login Handler
+  const handleGoogleLogin = async () => {
+    setIsGoogleLoading(true);
+    
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      const idToken = await user.getIdToken();
+
+      const response = await axios.post(
+        "http://localhost:8800/api/v1/google-login",
+        { 
+          idToken,
+          email: user.email,
+          username: user.displayName,
+          photoURL: user.photoURL,
+          uid: user.uid
+        },
+        { withCredentials: true }
+      );
+      
+      toast.success("Google login successful!", {
+        position: "top-center",
+        autoClose: 1500,
+      });
+      
+      setTimeout(() => {
+        dispatch(authActions.login());
+        navigate("/profile");
+      }, 1000);
+      
+    } catch (error) {
+      setIsGoogleLoading(false);
+      console.error("Google login error:", error);
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        toast.error("Login cancelled by user");
+      } else if (error.code === 'auth/popup-blocked') {
+        toast.error("Popup blocked. Please allow popups for this site.");
+      } else {
+        toast.error("Google login failed. Please try again.");
       }
     }
   };
@@ -93,10 +140,7 @@ const Login = () => {
           <div className="px-8 pt-8 pb-8">
             {/* Logo and Branding */}
             <div className="text-center mb-6">
-              <Link
-                to="/"
-                className="inline-block"
-              >
+              <Link to="/" className="inline-block">
                 <div className="flex items-center justify-center mb-2">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -117,10 +161,7 @@ const Login = () => {
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="space-y-4">
                 <div className="relative">
-                  <label
-                    htmlFor="email"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                     Email Address
                   </label>
                   <div className="relative">
@@ -144,10 +185,7 @@ const Login = () => {
                 </div>
                 
                 <div className="relative">
-                  <label
-                    htmlFor="password"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                     Password
                   </label>
                   <div className="relative">
@@ -220,11 +258,20 @@ const Login = () => {
               <div className="mt-6 grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  className="w-full flex items-center justify-center py-2.5 border border-gray-300 rounded-lg shadow-sm bg-white hover:bg-gray-50 transition-all duration-200"
+                  onClick={handleGoogleLogin}
+                  disabled={isGoogleLoading}
+                  className="w-full flex items-center justify-center py-2.5 border border-gray-300 rounded-lg shadow-sm bg-white hover:bg-gray-50 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M20.283 10.356h-8.327v3.451h4.792c-.446 2.193-2.313 3.453-4.792 3.453a5.27 5.27 0 0 1-5.279-5.28 5.27 5.27 0 0 1 5.279-5.279c1.259 0 2.397.447 3.29 1.178l2.6-2.599c-1.584-1.381-3.615-2.233-5.89-2.233a8.908 8.908 0 0 0-8.934 8.934 8.907 8.907 0 0 0 8.934 8.934c4.467 0 8.529-3.249 8.529-8.934 0-.528-.081-1.097-.202-1.625z"/>
-                  </svg>
+                  {isGoogleLoading ? (
+                    <svg className="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M20.283 10.356h-8.327v3.451h4.792c-.446 2.193-2.313 3.453-4.792 3.453a5.27 5.27 0 0 1-5.279-5.28 5.27 5.27 0 0 1 5.279-5.279c1.259 0 2.397.447 3.29 1.178l2.6-2.599c-1.584-1.381-3.615-2.233-5.89-2.233a8.908 8.908 0 0 0-8.934 8.934 8.907 8.907 0 0 0 8.934 8.934c4.467 0 8.529-3.249 8.529-8.934 0-.528-.081-1.097-.202-1.625z"/>
+                    </svg>
+                  )}
                 </button>
                 <button
                   type="button"

@@ -13,7 +13,7 @@ const PodcastCard = ({ podcast,view,items }) => {
   const handlePlay = async (e) => {
     e.preventDefault();
     
-    if (!isLoggedIn) return; // Prevent execution if not logged in
+    if (!isLoggedIn) return;
     
     dispatch(playerActions.setDiv());
     dispatch(playerActions.changeImage(`http://localhost:8800/${items.frontImage}`));
@@ -71,7 +71,6 @@ const PodcastCard = ({ podcast,view,items }) => {
           </p>
         </Link>
         
-        {/* Action button */}
         {isLoggedIn ? (
           <button
             className="bg-gradient-to-r from-indigo-600 to-purple-500 text-white rounded-full py-2.5 px-4 flex items-center justify-center gap-2 hover:bg-purple-800 transform hover:-translate-y-0.5 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50"

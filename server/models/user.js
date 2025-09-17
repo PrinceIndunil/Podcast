@@ -14,12 +14,27 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true, // unique: false (multiple users can have same password hash)
+      required: function(){
+        return !this.isGoogleUser;
+      }
     },
 
     profilePic: {
       type: String,
       default: "default-profile.png",
+    },
+
+    googleId: {
+      type: String,
+      default: null,
+    },
+    isGoogleUser: {
+      type: Boolean,
+      default: false,
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
     },
 
     podcasts: [
@@ -29,12 +44,20 @@ const userSchema = new mongoose.Schema(
       },
     ],
 
-    watchedPodcasts: [
-      {
-        type: mongoose.Types.ObjectId,
-        ref: "podcasts",
-      },
-    ],
+    watchedPodcasts: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'podcasts'
+    }],
+    
+    watchHistory: {
+        type: mongoose.Schema.Types.Mixed, 
+        default: {}
+    },
+    
+    savedPodcasts: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'podcasts'
+    }],
 
     playHistory: [
       {
@@ -54,16 +77,6 @@ const userSchema = new mongoose.Schema(
         time: { type: Number, default: 0 }, // in seconds
       },
     ],
-
-    watchHistory: {
-      type: Map,
-      of: {
-        progress: Number,
-        duration: Number,
-        watchedAt: Date,
-      },
-      default: {},
-    },
   },
   { timestamps: true }
 );

@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ArrowRight, Headphones, TrendingUp, ExternalLink } from "lucide-react";
 
-// Image imports
 import Culture from "../assets/Culture.jpg";
 import Business from "../assets/business.png";
 import Education from "../assets/Education.png";
@@ -14,7 +13,6 @@ import Technology from "../assets/Technology.png";
 import Travel from "../assets/Travel.png";
 import Love from "../assets/LoveImg.jpg";
 
-// Centralized category data
 const categoryData = [
   {
     name: "Culture",
@@ -90,7 +88,6 @@ const categoryData = [
   },
 ];
 
-// Animation variants
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -490,7 +487,6 @@ const Categories = () => {
         </motion.div>
       </div>
 
-      {/* CSS */}
       <style jsx>{`
         .bg-pattern {
           background-image: radial-gradient(currentColor 1px, transparent 1px);

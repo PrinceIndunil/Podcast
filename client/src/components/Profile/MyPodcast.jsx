@@ -33,7 +33,7 @@ const MyPodcast = () => {
 
   // Derived state for filtering and sorting
   const filteredAndSortedPodcasts = React.useMemo(() => {
-    // Filter podcasts
+    
     const filtered = podcasts.filter((p) =>
       [p.title, p.description, p.category].some((field) =>
         field?.toLowerCase().includes(filterText.toLowerCase())
@@ -72,7 +72,7 @@ const MyPodcast = () => {
     {
       icon: <Headphones className="h-5 w-5 text-purple-500" />,
       label: "Total Episodes",
-      value: podcasts.reduce((sum, p) => sum + (p.episodes || 0), 0),
+      value: podcasts.reduce((sum, p) => sum + (p.totalEpisodes || 0), 0),
       color: "from-purple-500 to-indigo-400",
     },
     {
@@ -236,7 +236,6 @@ const MyPodcast = () => {
           ))}
         </div>
       ) : filteredAndSortedPodcasts.length > 0 ? (
-        /* Podcast Grid/List */
         <div className={`transition-all duration-500 ${
           view === "grid"
             ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
@@ -276,7 +275,6 @@ const MyPodcast = () => {
         </div>
       )}
 
-      {/* Add some CSS for animations */}
       <style jsx>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(10px); }
