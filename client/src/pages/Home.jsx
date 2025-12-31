@@ -152,18 +152,18 @@ const Home = () => {
             </div>
             <div className="flex gap-4">
               <button
-  onClick={() => navigate('/login')}
-  className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-full shadow-md transform transition-all hover:scale-105 hover:bg-indigo-700"
->
-  Get Started
-</button>
+                onClick={() => navigate('/login')}
+                className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-full shadow-md transform transition-all hover:scale-105 hover:bg-indigo-700"
+              >
+                Get Started
+              </button>
 
               <button
-  onClick={scrollToSection}
-  className="px-6 py-3 bg-transparent text-indigo-600 font-semibold rounded-full border border-indigo-300 transform transition-all hover:scale-105 hover:bg-indigo-50 hover:border-indigo-400"
->
-  Learn More
-</button>
+                onClick={scrollToSection}
+                className="px-6 py-3 bg-transparent text-indigo-600 font-semibold rounded-full border border-indigo-300 transform transition-all hover:scale-105 hover:bg-indigo-50 hover:border-indigo-400"
+              >
+                Learn More
+              </button>
 
             </div>
           </div>

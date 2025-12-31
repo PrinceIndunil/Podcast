@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import { 
-  Mic, Radio, Headphones, Clock, BarChart2, 
-  Calendar, Search, Grid, List, PlusCircle 
+import {
+  Mic, Radio, Headphones, Clock, BarChart2,
+  Calendar, Search, Grid, List, PlusCircle, Layout
 } from "lucide-react";
 import PodcastCard from "../PodcastCard/PodcastCard";
 
@@ -33,7 +33,6 @@ const MyPodcast = () => {
 
   // Derived state for filtering and sorting
   const filteredAndSortedPodcasts = React.useMemo(() => {
-    
     const filtered = podcasts.filter((p) =>
       [p.title, p.description, p.category].some((field) =>
         field?.toLowerCase().includes(filterText.toLowerCase())
@@ -64,225 +63,181 @@ const MyPodcast = () => {
   // Stats calculations
   const stats = React.useMemo(() => [
     {
-      icon: <Radio className="h-5 w-5 text-teal-500" />,
+      icon: <Radio className="h-6 w-6 text-white" />,
       label: "Total Podcasts",
+      description: "Shows you've hosted",
       value: podcasts.length,
-      color: "from-teal-500 to-cyan-400",
+      color: "from-blue-600 to-indigo-600",
     },
     {
-      icon: <Headphones className="h-5 w-5 text-purple-500" />,
+      icon: <Headphones className="h-6 w-6 text-white" />,
       label: "Total Episodes",
+      description: "Content generated",
       value: podcasts.reduce((sum, p) => sum + (p.totalEpisodes || 0), 0),
-      color: "from-purple-500 to-indigo-400",
+      color: "from-purple-600 to-indigo-600",
     },
     {
-      icon: <Clock className="h-5 w-5 text-amber-500" />,
+      icon: <Clock className="h-6 w-6 text-white" />,
       label: "Hours Recorded",
+      description: "Time on air",
       value: totalDurationInHours,
-      color: "from-amber-500 to-yellow-400",
+      color: "from-indigo-600 to-blue-600",
     },
     {
-      icon: <BarChart2 className="h-5 w-5 text-pink-500" />,
+      icon: <BarChart2 className="h-6 w-6 text-white" />,
       label: "Total Listeners",
+      description: "Audience reach",
       value: totalListeners,
-      color: "from-pink-500 to-rose-400",
+      color: "from-blue-600 to-purple-600",
     },
-  ], [podcasts]);
+  ], [podcasts, totalDurationInHours, totalListeners]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-purple-50 to-pink-50 px-5 lg:px-10 py-10 text-gray-800">
-      {/* Decorative background elements */}
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-32 -left-32 w-96 h-96 bg-teal-400/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-purple-400/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-1/3 left-1/3 w-72 h-72 bg-amber-400/10 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-pink-400/20 rounded-full blur-3xl animate-pulse"></div>
-      </div>
-
-      {/* Header Section */}
-      <div className="relative mb-12">
-        <div className="relative flex flex-col md:flex-row justify-between gap-6 items-center">
-          <div className="flex items-center gap-3 transform transition hover:scale-105">
-            <div className="bg-gradient-to-r from-teal-500 to-cyan-400 p-3 rounded-full shadow-lg">
-              <Mic className="h-6 w-6 text-white" />
-            </div>
-            <h1 className="text-4xl font-extrabold bg-gradient-to-r from-teal-500 via-cyan-400 to-sky-500 text-transparent bg-clip-text">
-              My Studio
-            </h1>
-          </div>
-
-          <div className="flex flex-wrap gap-3 justify-end items-center">
-            {/* Search Bar */}
-            <div className="relative group">
-              <input
-                type="text"
-                placeholder="Search podcasts..."
-                value={filterText}
-                onChange={(e) => setFilterText(e.target.value)}
-                className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl py-2 pl-10 pr-4 
-                           shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm w-full md:w-auto
-                           transition-all duration-300 group-hover:shadow-md"
-              />
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
-              {filterText && (
-                <button
-                  onClick={() => setFilterText("")}
-                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
-                >
-                  ×
-                </button>
-              )}
-            </div>
-
-            {/* View Toggle */}
-            <button
-              onClick={() => setView(view === "grid" ? "list" : "grid")}
-              className="bg-white/80 backdrop-blur-sm border border-gray-200 text-sm rounded-xl px-4 py-2 
-                         hover:bg-white hover:shadow-md transition-all duration-300 flex items-center gap-2"
-              aria-label={`Switch to ${view === "grid" ? "list" : "grid"} view`}
-            >
-              {view === "grid" ? (
-                <>
-                  <List className="h-4 w-4" /> List View
-                </>
-              ) : (
-                <>
-                  <Grid className="h-4 w-4" /> Grid View
-                </>
-              )}
-            </button>
-
-            {/* Sort Dropdown */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl py-2 px-3 text-sm
-                         focus:outline-none focus:ring-2 focus:ring-teal-500 shadow hover:shadow-md
-                         transition-all duration-300 appearance-none cursor-pointer"
-            >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="episodes">Most Episodes</option>
-              <option value="alphabetical">A-Z</option>
-            </select>
-
-            {/* Create Button */}
-            <Link
-              to="/add-podcast"
-              className="bg-gradient-to-r from-teal-500 to-cyan-400 text-white font-semibold px-5 py-2 
-                         rounded-xl shadow-lg hover:shadow-xl hover:translate-y-px 
-                         transition-all duration-300 transform"
-            >
-              <div className="flex items-center gap-2">
-                <PlusCircle className="h-4 w-4" />
-                Add Podcast
-              </div>
-            </Link>
-          </div>
-        </div>
-      </div>
-
+    <div className="w-full">
       {/* Stats Panels */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-        {stats.map(({ icon, label, value, color }, i) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+        {stats.map(({ icon, label, description, value, color }, i) => (
           <div
             key={i}
-            className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 flex items-center gap-4 
-                       shadow-md border border-gray-100 transition-all duration-300
-                       hover:shadow-lg hover:bg-white/80 group"
+            className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 flex flex-col gap-6 
+                       shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/40 transition-all duration-500
+                       hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 group"
           >
-            <div className={`p-3 rounded-full bg-gradient-to-r ${color} shadow-sm
-                            group-hover:shadow group-hover:scale-105 transition-transform duration-300`}>
+            <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg
+                            group-hover:scale-110 transition-transform duration-500`}>
               {icon}
             </div>
             <div>
-              <p className="text-sm text-gray-500">{label}</p>
-              <p className="text-2xl font-bold text-gray-800">{value}</p>
+              <p className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-1">{label}</p>
+              <p className="text-3xl font-black text-slate-800 tracking-tight mb-1">{value}</p>
+              <p className="text-xs text-slate-400 font-medium">{description}</p>
             </div>
           </div>
         ))}
       </div>
 
-      {/* My Collection Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold flex items-center gap-2 text-gray-700">
-          <Radio className="h-5 w-5 text-teal-500" />
-          My Collection
-          <span className="text-sm bg-teal-100 text-teal-800 py-1 px-2 rounded-full">
-            {filteredAndSortedPodcasts.length} podcasts
-          </span>
-        </h2>
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <Calendar className="h-4 w-4" />
-          <span>Last updated: Today</span>
-        </div>
-      </div>
+      {/* Podcast List Section */}
+      <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+          <div>
+            <h2 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+              <Layout className="h-8 w-8 text-indigo-600" />
+              Your Studio
+            </h2>
+            <p className="text-slate-500 font-medium mt-1">Manage and monitor your podcast content performance.</p>
+          </div>
 
-      {/* Loading State */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <div 
-              key={i} 
-              className="bg-white/40 rounded-xl p-6 h-64 animate-pulse flex flex-col justify-between"
+          <div className="flex flex-wrap gap-4 w-full md:w-auto">
+            {/* Search Bar */}
+            <div className="relative flex-grow md:flex-grow-0 group">
+              <input
+                type="text"
+                placeholder="Search your library..."
+                value={filterText}
+                onChange={(e) => setFilterText(e.target.value)}
+                aria-label="Search podcasts"
+                className="bg-white border-slate-200 border rounded-2xl py-3.5 pl-12 pr-4 
+                           shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-sm w-full md:w-64
+                           transition-all duration-300"
+              />
+              <Search className="absolute left-4 top-4 h-4 w-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 w-full md:w-auto">
+              <Link
+                to="/generate-podcast"
+                className="flex-1 md:flex-none bg-gradient-to-r from-pink-600 to-purple-600 text-white font-bold px-6 py-3.5 
+                           rounded-2xl shadow-lg shadow-purple-200 hover:shadow-xl hover:shadow-purple-300 hover:-translate-y-0.5 
+                           transition-all duration-300 flex items-center justify-center gap-2 group"
+              >
+                <Mic className="h-4 w-4 group-hover:animate-pulse" />
+                <span>AI Studio</span>
+              </Link>
+              <Link
+                to="/add-podcast"
+                className="flex-1 md:flex-none bg-slate-900 text-white font-bold px-6 py-3.5 
+                           rounded-2xl shadow-lg shadow-slate-200 hover:shadow-xl hover:shadow-slate-300 hover:-translate-y-0.5 
+                           transition-all duration-300 flex items-center justify-center gap-2"
+              >
+                <PlusCircle className="h-4 w-4" />
+                <span>Add Podcast</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* List Controls */}
+        <div className="flex items-center justify-between mb-8 bg-slate-100/50 p-2 rounded-2xl">
+          <div className="flex p-1 bg-white rounded-xl shadow-sm border border-slate-200">
+            <button
+              onClick={() => setView("grid")}
+              className={`p-2 rounded-lg transition-all ${view === "grid" ? "bg-indigo-600 text-white" : "text-slate-400"}`}
             >
-              <div className="w-3/4 h-5 bg-gray-200 rounded mb-4"></div>
-              <div className="w-1/2 h-4 bg-gray-200 rounded mb-12"></div>
-              <div className="flex justify-between">
-                <div className="w-1/4 h-4 bg-gray-200 rounded"></div>
-                <div className="w-1/4 h-4 bg-gray-200 rounded"></div>
+              <Grid className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => setView("list")}
+              className={`p-2 rounded-lg transition-all ${view === "list" ? "bg-indigo-600 text-white" : "text-slate-400"}`}
+            >
+              <List className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="bg-transparent text-slate-600 font-bold text-sm focus:outline-none cursor-pointer"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="episodes">Most Content</option>
+              <option value="alphabetical">A-Z</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Loading / Content Section */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="bg-white rounded-3xl p-6 h-72 animate-pulse border border-slate-100">
+                <div className="aspect-video bg-slate-100 rounded-2xl mb-6"></div>
+                <div className="h-6 bg-slate-100 rounded-full w-3/4 mb-3"></div>
+                <div className="h-4 bg-slate-100 rounded-full w-1/2"></div>
               </div>
+            ))}
+          </div>
+        ) : filteredAndSortedPodcasts.length > 0 ? (
+          <div className={`grid gap-8 ${view === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"}`}>
+            {filteredAndSortedPodcasts.map((item, i) => (
+              <div key={item._id} className="animate-in fade-in zoom-in-95 duration-500" style={{ animationDelay: `${i * 100}ms` }}>
+                <PodcastCard items={item} viewMode={view} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-[2rem] p-16 text-center border-2 border-dashed border-slate-200">
+            <div className="w-24 h-24 bg-indigo-50 text-indigo-200 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Mic className="h-12 w-12" />
             </div>
-          ))}
-        </div>
-      ) : filteredAndSortedPodcasts.length > 0 ? (
-        <div className={`transition-all duration-500 ${
-          view === "grid"
-            ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-            : "space-y-4"
-        }`}>
-          {filteredAndSortedPodcasts.map((item, i) => (
-            <div 
-              key={i} 
-              className={`${view === "list" ? "w-full" : ""} transform transition-all duration-300 hover:scale-102`}
-              style={{ 
-                animationDelay: `${i * 0.05}s`,
-                animationFillMode: "both",
-                animation: "fadeIn 0.5s ease-out"
-              }}
+            <h3 className="text-2xl font-bold text-slate-800">{filterText ? "No matches found" : "Your studio is empty"}</h3>
+            <p className="text-slate-500 mt-2 max-w-sm mx-auto">
+              {filterText ? `We couldn't find anything matching "${filterText}".` : "Start your journey by creating your first AI-powered podcast."}
+            </p>
+            <button
+              onClick={() => filterText ? setFilterText("") : null}
+              className="mt-8 px-8 py-3 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-100 hover:shadow-indigo-200 transition-all"
             >
-              <PodcastCard items={item} viewMode={view} />
-            </div>
-          ))}
-        </div>
-      ) : (
-        /* Empty State */
-        <div className="bg-white/60 backdrop-blur-sm border border-gray-200 rounded-xl p-12 text-center shadow-md transition-all hover:shadow-lg">
-          <Radio className="h-16 w-16 text-teal-500/50 mx-auto mb-4 animate-pulse" />
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">No podcasts found</h3>
-          <p className="text-gray-500 mb-6 max-w-md mx-auto">
-            {filterText
-              ? `No podcasts match "${filterText}". Try a different search term.`
-              : "Create your first podcast to start sharing your voice with the world."}
-          </p>
-          <button
-            onClick={() => setFilterText("")}
-            className="px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-400 text-white font-semibold 
-                       rounded-lg shadow-md hover:shadow-lg hover:translate-y-px transition-all duration-300"
-          >
-            {filterText ? "Clear Search" : "Create Your First Podcast"}
-          </button>
-        </div>
-      )}
-
-      <style jsx>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
+              {filterText ? "Clear Search" : "Create My First Podcast"}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
+
 
 export default MyPodcast;

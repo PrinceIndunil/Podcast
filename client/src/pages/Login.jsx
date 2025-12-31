@@ -12,16 +12,16 @@ const Login = () => {
   const isLoggedIn = useSelector((state) => state.auth.isLoggedIn);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  
+
   const [values, setValues] = useState({
     email: "",
     password: "",
   });
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [appear, setAppear] = useState(false);
-  
+
   useEffect(() => {
     setAppear(true);
   }, []);
@@ -34,24 +34,24 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     try {
       const res = await axios.post(
         "http://localhost:8800/api/v1/login",
         values,
         { withCredentials: true }
       );
-      
+
       toast.success("Login successful!", {
         position: "top-center",
         autoClose: 1500,
       });
-      
+
       setTimeout(() => {
-        dispatch(authActions.login());
+        dispatch(authActions.login(res.data.id));
         navigate("/profile");
       }, 1000);
-      
+
     } catch (error) {
       setIsLoading(false);
       if (error.response) {
@@ -67,7 +67,7 @@ const Login = () => {
   // Google Login Handler
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
-    
+
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
@@ -76,7 +76,7 @@ const Login = () => {
 
       const response = await axios.post(
         "http://localhost:8800/api/v1/google-login",
-        { 
+        {
           idToken,
           email: user.email,
           username: user.displayName,
@@ -85,21 +85,21 @@ const Login = () => {
         },
         { withCredentials: true }
       );
-      
+
       toast.success("Google login successful!", {
         position: "top-center",
         autoClose: 1500,
       });
-      
+
       setTimeout(() => {
-        dispatch(authActions.login());
+        dispatch(authActions.login(response.data.id));
         navigate("/profile");
       }, 1000);
-      
+
     } catch (error) {
       setIsGoogleLoading(false);
       console.error("Google login error:", error);
-      
+
       if (error.code === 'auth/popup-closed-by-user') {
         toast.error("Login cancelled by user");
       } else if (error.code === 'auth/popup-blocked') {
@@ -126,17 +126,17 @@ const Login = () => {
         pauseOnHover
         theme="light"
       />
-      
+
       {/* Decorative elements */}
       <div className="absolute top-0 left-0 w-64 h-64 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
       <div className="absolute top-40 right-20 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
-      
+
       <div className={`w-full max-w-md transform transition-all duration-1000 ${appear ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}>
         <div className="bg-white bg-opacity-90 backdrop-filter backdrop-blur-lg rounded-2xl shadow-xl overflow-hidden">
-          
+
           {/* Colorful top accent */}
           <div className="h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-          
+
           <div className="px-8 pt-8 pb-8">
             {/* Logo and Branding */}
             <div className="text-center mb-6">
@@ -155,9 +155,9 @@ const Login = () => {
                 <p className="text-gray-500 text-sm mt-1">Your Ultimate Podcast Platform</p>
               </Link>
             </div>
-            
+
             <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Welcome Back!</h2>
-            
+
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="space-y-4">
                 <div className="relative">
@@ -183,7 +183,7 @@ const Login = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div className="relative">
                   <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                     Password
@@ -208,7 +208,7 @@ const Login = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center">
                   <input
@@ -227,7 +227,7 @@ const Login = () => {
                   </Link>
                 </div>
               </div>
-              
+
               <button
                 type="submit"
                 disabled={isLoading}
@@ -245,7 +245,7 @@ const Login = () => {
                   "Sign in"
                 )}
               </button>
-              
+
               <div className="relative flex items-center justify-center mt-6">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-300"></div>
@@ -254,7 +254,7 @@ const Login = () => {
                   <span className="px-2 bg-white text-gray-500">Or continue with</span>
                 </div>
               </div>
-              
+
               <div className="mt-6 grid grid-cols-2 gap-3">
                 <button
                   type="button"
@@ -269,7 +269,7 @@ const Login = () => {
                     </svg>
                   ) : (
                     <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M20.283 10.356h-8.327v3.451h4.792c-.446 2.193-2.313 3.453-4.792 3.453a5.27 5.27 0 0 1-5.279-5.28 5.27 5.27 0 0 1 5.279-5.279c1.259 0 2.397.447 3.29 1.178l2.6-2.599c-1.584-1.381-3.615-2.233-5.89-2.233a8.908 8.908 0 0 0-8.934 8.934 8.907 8.907 0 0 0 8.934 8.934c4.467 0 8.529-3.249 8.529-8.934 0-.528-.081-1.097-.202-1.625z"/>
+                      <path d="M20.283 10.356h-8.327v3.451h4.792c-.446 2.193-2.313 3.453-4.792 3.453a5.27 5.27 0 0 1-5.279-5.28 5.27 5.27 0 0 1 5.279-5.279c1.259 0 2.397.447 3.29 1.178l2.6-2.599c-1.584-1.381-3.615-2.233-5.89-2.233a8.908 8.908 0 0 0-8.934 8.934 8.907 8.907 0 0 0 8.934 8.934c4.467 0 8.529-3.249 8.529-8.934 0-.528-.081-1.097-.202-1.625z" />
                     </svg>
                   )}
                 </button>
@@ -278,12 +278,12 @@ const Login = () => {
                   className="w-full flex items-center justify-center py-2.5 border border-gray-300 rounded-lg shadow-sm bg-white hover:bg-gray-50 transition-all duration-200"
                 >
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M13.397 20.997v-8.196h2.765l.411-3.209h-3.176V7.548c0-.926.258-1.56 1.587-1.56h1.684V3.127A22.336 22.336 0 0 0 14.201 3c-2.444 0-4.122 1.492-4.122 4.231v2.355H7.332v3.209h2.753v8.202h3.312z"/>
+                    <path d="M13.397 20.997v-8.196h2.765l.411-3.209h-3.176V7.548c0-.926.258-1.56 1.587-1.56h1.684V3.127A22.336 22.336 0 0 0 14.201 3c-2.444 0-4.122 1.492-4.122 4.231v2.355H7.332v3.209h2.753v8.202h3.312z" />
                   </svg>
                 </button>
               </div>
             </form>
-            
+
             <p className="mt-8 text-center text-sm text-gray-600">
               Don't have an account?{" "}
               <Link
@@ -295,7 +295,7 @@ const Login = () => {
             </p>
           </div>
         </div>
-        
+
         {/* Footer */}
         <div className="text-center mt-6 text-sm text-gray-600">
           <p>© 2025 MYTUBE. All rights reserved.</p>

@@ -15,6 +15,7 @@ const Navbar = () => {
     { name: 'All Podcast', path: '/all-podcasts' },
     { name: 'Episodes', path: '/episode' },
     { name: 'Library', path: '/library' },
+    { name: 'Live', path: '/live' },
   ];
 
   return (
@@ -31,9 +32,9 @@ const Navbar = () => {
           {/* Desktop Navigation Links */}
           <div className="hidden md:flex items-center space-x-6">
             {navLinks.map((item, i) => (
-              <Link 
-                key={i} 
-                to={item.path} 
+              <Link
+                key={i}
+                to={item.path}
                 className="text-gray-300 hover:text-white transition-colors duration-200"
               >
                 {item.name}
@@ -44,22 +45,22 @@ const Navbar = () => {
           <div className="hidden md:flex items-center">
             {!isLoggedIn ? (
               <>
-                <Link 
-                  to="/login" 
+                <Link
+                  to="/login"
                   className="text-gray-300 hover:text-white px-3 py-2"
                 >
                   Login
                 </Link>
-                <Link 
-                  to="/signup" 
+                <Link
+                  to="/signup"
                   className="bg-red-600 text-white px-4 py-2 rounded-md ml-3 hover:bg-red-700"
                 >
                   Signup
                 </Link>
               </>
             ) : (
-              <Link 
-                to="/profile" 
+              <Link
+                to="/profile"
                 className="bg-gray-800 px-4 py-2 rounded-md hover:bg-gray-700"
               >
                 Profile
@@ -73,8 +74,8 @@ const Navbar = () => {
               onClick={() => setIsMenuOpen((prev) => !prev)}
               className="text-gray-300 hover:text-white focus:outline-none"
             >
-              {isMenuOpen ? 
-                <RxCross1 className="h-6 w-6" /> : 
+              {isMenuOpen ?
+                <RxCross1 className="h-6 w-6" /> :
                 <IoReorderThreeOutline className="h-7 w-7" />
               }
             </button>

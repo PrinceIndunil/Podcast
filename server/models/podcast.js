@@ -52,6 +52,14 @@ const podcastSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
+    // AI Insights
+    transcript: { type: String },
+    summary: { type: String },
+    highlights: [{
+        timestamp: String,
+        topic: String
+    }],
+    mood: { type: String },
     category: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "category",
@@ -71,8 +79,8 @@ const podcastSchema = new mongoose.Schema({
         required: true
     },
     episodes: {
-      type: [episodeSchema],
-      default: [] 
+        type: [episodeSchema],
+        default: []
     },
     totalEpisodes: {
         type: Number,
@@ -93,23 +101,40 @@ const podcastSchema = new mongoose.Schema({
     explicit: {
         type: Boolean,
         default: false
-    }
+    },
+    likes: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user"
+    }],
+    dislikes: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user"
+    }],
+    comments: [{
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "user"
+        },
+        username: String,
+        text: String,
+        createdAt: {
+            type: Date,
+            default: Date.now
+        }
+    }]
 }, {
     timestamps: true
 });
 
-// Update totalEpisodes count before saving
-podcastSchema.pre('save', function(next) {
+podcastSchema.pre('save', function (next) {
     this.totalEpisodes = this.episodes?.length || 0;
     next();
 });
 
-// Virtual for getting episode count
-podcastSchema.virtual('episodeCount').get(function() {
+podcastSchema.virtual('episodeCount').get(function () {
     return this.episodes?.length || 0;
 });
 
-// Ensure virtual fields are serialized
 podcastSchema.set('toJSON', { virtuals: true });
 podcastSchema.set('toObject', { virtuals: true });
 

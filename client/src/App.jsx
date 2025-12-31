@@ -4,7 +4,7 @@ import MainLayout from './layout/MainLayout';
 import Home from "./pages/Home";
 import AuthLayout from './layout/AuthLayout';
 import Signup from './pages/signup.jsx';
-import Login from './pages/Login.jsx'; 
+import Login from './pages/Login.jsx';
 import Categories from "./pages/Categories.jsx"
 import Profile from './pages/Profile.jsx';
 import axios from 'axios';
@@ -18,47 +18,54 @@ import Library from './pages/WatchHistory.jsx';
 import Episode from './pages/Episodes.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import EditProfile from './pages/EditProfile.jsx';
+import GeneratePodcast from './pages/GeneratePodcast.jsx';
 import PrivacySecurity from './pages/Privacy.jsx';
+import LiveRoom from './pages/LiveRoom.jsx';
+import LiveSetup from './pages/LiveSetup.jsx';
 
 const App = () => {
   const dispatch = useDispatch();
-  useEffect(() =>{
-     const fetch = async () =>{
+  useEffect(() => {
+    const fetch = async () => {
       try {
-        const res = await axios.get("http://localhost:8800/api/v1/check-cookie" , {
+        const res = await axios.get("http://localhost:8800/api/v1/check-cookie", {
           withCredentials: true,
         });
-        if(res.data.message){
-          dispatch(authActions.login());
+        if (res.data.message) {
+          dispatch(authActions.login(res.data.id));
         }
       } catch (error) {
         console.log(error)
       }
-      
-     };
-     fetch();
-  },[])
+
+    };
+    fetch();
+  }, [])
   return (
     <div>
       <Router>
         <Routes>
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Home />} />
-            <Route path="/categories" element={<Categories/>}/>
-            <Route path="/profile" element={<Profile/>}/>
-            <Route path="/add-podcast" element={<AddPodcast/>}/>
-            <Route path="/all-podcasts" element={<AllPodcasts/>}/>
-            <Route path="/library" element={<Library/>}/>
-            <Route path="/categories/:cat" element={<CategoriesPage/>} />
-            <Route path="/description/:id" element={<DescriptionPage/>} />
-            <Route path="/episode" element={<Episode/>} />
+            <Route path="/categories" element={<Categories />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/add-podcast" element={<AddPodcast />} />
+            <Route path="/edit-profile" element={<EditProfile />} />
+            <Route path="/generate-podcast" element={<GeneratePodcast />} />
+            <Route path="/all-podcasts" element={<AllPodcasts />} />
+            <Route path="/library" element={<Library />} />
+            <Route path="/categories/:cat" element={<CategoriesPage />} />
+            <Route path="/description/:id" element={<DescriptionPage />} />
+            <Route path="/episode" element={<Episode />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/edit-profile" element={<EditProfile />} />
             <Route path="/privacy-settings" element={<PrivacySecurity />} />
+            <Route path="/live/:id" element={<LiveRoom />} />
+            <Route path="/live" element={<LiveSetup />} />
           </Route>
 
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/login" element={<Login />} />
         </Routes>
       </Router>
     </div>

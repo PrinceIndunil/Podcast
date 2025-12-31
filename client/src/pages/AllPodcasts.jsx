@@ -11,7 +11,7 @@ const AllPodcasts = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sortBy, setSortBy] = useState("newest");
+  const [sortBy, setSortBy] = useState("smart");
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [activeView, setActiveView] = useState("grid");
 
@@ -25,6 +25,7 @@ const AllPodcasts = () => {
   ];
 
   const sortOptions = [
+    { value: "smart", label: "For You (Recommended)" },
     { value: "newest", label: "Newest First" },
     { value: "oldest", label: "Oldest First" },
     { value: "a-z", label: "A-Z" },
@@ -45,7 +46,9 @@ const AllPodcasts = () => {
     setError(null);
     try {
       const category = categoryName.toLowerCase() !== "all" ? `?category=${categoryName}` : "";
-      const res = await axios.get(`http://localhost:8800/api/v1/get-podcasts${category}`);
+      const res = await axios.get(`http://localhost:8800/api/v1/get-podcasts${category}`, {
+        withCredentials: true
+      });
       setPodcasts(res.data.data || []);
     } catch (error) {
       console.error("Error fetching podcasts:", error);
@@ -58,12 +61,15 @@ const AllPodcasts = () => {
   const filterAndSortPodcasts = () => {
     let filtered = podcasts.filter(
       (podcast) =>
-        podcast.title &&
-        podcast.title.toLowerCase().includes(searchQuery.toLowerCase())
+        (podcast.title && podcast.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (podcast.summary && podcast.summary.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (podcast.transcript && podcast.transcript.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
     const sorted = [...filtered].sort((a, b) => {
       switch (sortBy) {
+        case "smart":
+          return 0; 
         case "oldest":
           return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
         case "a-z":
@@ -114,7 +120,6 @@ const AllPodcasts = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-slate-50 to-purple-50 pb-16">
-      {/* Hero Header Section */}
       <div className="bg-gradient-to-r from-purple-800 via-indigo-800 to-purple-900 text-white pt-16 pb-32 px-4 relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -right-10 -top-10 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
@@ -124,8 +129,8 @@ const AllPodcasts = () => {
           <div className="absolute bottom-0 left-0 right-0 h-16 opacity-20">
             <div className="flex items-end justify-center h-full gap-1">
               {Array(30).fill(0).map((_, i) => (
-                <div 
-                  key={i} 
+                <div
+                  key={i}
                   className="bg-white w-2 rounded-t-full"
                   style={{
                     height: `${Math.sin(i * 0.5) * 50 + 50}%`,
@@ -145,9 +150,9 @@ const AllPodcasts = () => {
             </div>
             <h1 className="text-5xl font-extrabold tracking-tight">Discover Podcasts</h1>
           </div>
-          
+
           <p className="max-w-2xl text-white/90 mb-8 text-lg font-light leading-relaxed">
-            Explore a vibrant collection of stories, insights, and voices from around the world. 
+            Explore a vibrant collection of stories, insights, and voices from around the world.
             Find your next audio obsession and expand your horizons.
           </p>
 
@@ -174,22 +179,19 @@ const AllPodcasts = () => {
         </div>
       </div>
 
-      {/* Content Section with Enhanced Filter UI */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-10">
         <div className="bg-white rounded-2xl shadow-xl p-4 md:p-6 mb-8">
           <div className="flex flex-col md:flex-row gap-6 justify-between items-center">
-            {/* Category Pills with Icons */}
             <div className="flex flex-wrap gap-2 justify-center md:justify-start">
               {popularCategories.map((category) => (
                 <Link
                   key={category.name}
                   to={`/categories/${category.name}`}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-2
-                  ${
-                    categoryName.toLowerCase() === category.name.toLowerCase()
+                  ${categoryName.toLowerCase() === category.name.toLowerCase()
                       ? "bg-indigo-600 text-white shadow-md scale-105"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105"
-                  }`}
+                    }`}
                 >
                   {category.icon}
                   {category.name}
@@ -197,10 +199,9 @@ const AllPodcasts = () => {
               ))}
             </div>
 
-            {/* View Toggle and Sort Controls */}
             <div className="flex items-center gap-4">
               <div className="bg-gray-100 rounded-lg p-1 flex gap-1">
-                <button 
+                <button
                   onClick={() => setActiveView("grid")}
                   className={`p-1.5 rounded ${activeView === "grid" ? "bg-white shadow" : "hover:bg-gray-200"}`}
                 >
@@ -208,7 +209,7 @@ const AllPodcasts = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                   </svg>
                 </button>
-                <button 
+                <button
                   onClick={() => setActiveView("list")}
                   className={`p-1.5 rounded ${activeView === "list" ? "bg-white shadow" : "hover:bg-gray-200"}`}
                 >
@@ -218,7 +219,6 @@ const AllPodcasts = () => {
                 </button>
               </div>
 
-              {/* Custom Sort Dropdown */}
               <div className="relative">
                 <button
                   onClick={toggleSortDropdown}
@@ -235,18 +235,17 @@ const AllPodcasts = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
-                
+
                 {showSortDropdown && (
                   <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50 divide-y divide-gray-100">
                     <div className="py-1" role="menu" aria-orientation="vertical">
                       {sortOptions.map((option) => (
                         <button
                           key={option.value}
-                          className={`block w-full text-left px-4 py-2 text-sm ${
-                            sortBy === option.value
-                              ? "bg-indigo-50 text-indigo-700 font-medium"
-                              : "text-gray-700 hover:bg-gray-50"
-                          }`}
+                          className={`block w-full text-left px-4 py-2 text-sm ${sortBy === option.value
+                            ? "bg-indigo-50 text-indigo-700 font-medium"
+                            : "text-gray-700 hover:bg-gray-50"
+                            }`}
                           onClick={() => handleSortSelect(option.value)}
                         >
                           {option.label}
@@ -260,7 +259,6 @@ const AllPodcasts = () => {
           </div>
         </div>
 
-        {/* Results Count Display */}
         {!isLoading && !error && (
           <div className="flex justify-between items-center mb-6 px-1">
             <p className="text-gray-600">
@@ -268,9 +266,9 @@ const AllPodcasts = () => {
               {searchQuery && ` for "${searchQuery}"`}
               {categoryName !== "All" && ` in ${categoryName}`}
             </p>
-            
+
             {searchQuery && (
-              <button 
+              <button
                 onClick={() => setSearchQuery("")}
                 className="text-indigo-600 text-sm hover:text-indigo-800 flex items-center gap-1"
               >
@@ -281,7 +279,6 @@ const AllPodcasts = () => {
           </div>
         )}
 
-        {/* Podcast Grid with Improved Loading State */}
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {renderSkeletons()}
@@ -295,8 +292,8 @@ const AllPodcasts = () => {
                 </svg>
               </div>
               <p className="text-lg font-medium mb-2">{error}</p>
-              <button 
-                onClick={fetchPodcasts} 
+              <button
+                onClick={fetchPodcasts}
                 className="mt-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
                 Try Again
@@ -312,8 +309,8 @@ const AllPodcasts = () => {
               <h3 className="text-lg font-medium text-gray-900">No podcasts found</h3>
               <p className="text-gray-600 mt-1">Try adjusting your search or filters</p>
               {searchQuery && (
-                <button 
-                  onClick={() => setSearchQuery("")} 
+                <button
+                  onClick={() => setSearchQuery("")}
                   className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                 >
                   Clear Search

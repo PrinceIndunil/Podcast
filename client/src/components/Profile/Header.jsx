@@ -155,231 +155,142 @@ const Header = () => {
   return (
     userData && (
       <div
-        className={`rounded-2xl p-8 shadow-xl relative transition-all duration-500 ${
-          isDark
-            ? "bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900"
-            : "bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50"
-        }`}
+        className={`rounded-b-3xl p-6 shadow-2xl relative transition-all duration-500 overflow-hidden ${isDark
+          ? "bg-slate-900"
+          : "bg-white border-b border-slate-100"
+          }`}
       >
+        {/* Modern background gradient for non-dark mode */}
+        {!isDark && (
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 via-white to-purple-50/50 -z-10"></div>
+        )}
+
         {/* Animated background elements */}
-        <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div
-            className={`absolute top-0 left-1/4 w-64 h-64 rounded-full blur-3xl -translate-y-1/2 animate-pulse-slow ${
-              isDark ? "bg-purple-500 opacity-10" : "bg-yellow-200 opacity-30"
-            }`}
-          ></div>
-          <div
-            className={`absolute bottom-0 right-1/4 w-72 h-72 rounded-full blur-3xl translate-y-1/2 animate-pulse-slow animation-delay-2000 ${
-              isDark ? "bg-indigo-500 opacity-10" : "bg-teal-200 opacity-40"
-            }`}
-          ></div>
-          <div
-            className={`absolute -left-20 top-1/2 w-40 h-40 rounded-full blur-3xl animate-pulse-slow animation-delay-1000 ${
-              isDark ? "bg-blue-500 opacity-10" : "bg-pink-200 opacity-30"
-            }`}
+            className={`absolute top-0 left-1/4 w-64 h-64 rounded-full blur-3xl -translate-y-1/2 animate-pulse ${isDark ? "bg-purple-500 opacity-10" : "bg-indigo-300 opacity-20"
+              }`}
           ></div>
         </div>
 
         {/* Main content */}
-        <div className="relative z-10">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+        <div className="relative z-10 max-w-7xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             {/* User info section */}
-            <div className="text-center lg:text-left w-full lg:w-auto">
-              <div className="flex flex-col md:flex-row items-center gap-6 mb-6">
-                {/* Profile Icon & Theme Toggle */}
-                <div className="flex items-center gap-4">
-                  {/* User Profile Dropdown */}
-                  <div className="relative" ref={userMenuRef}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleUserMenuToggle();
-                      }}
-                      className={`group p-4 rounded-2xl shadow-lg transition-all duration-300 relative overflow-hidden hover:scale-105 cursor-pointer ${
-                        isDark ? "bg-gray-800" : "bg-white"
-                      } ${showUserMenu ? "ring-2 ring-indigo-500" : ""}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <User
-                          className={`h-8 w-8 ${
-                            isDark ? "text-indigo-400" : "text-indigo-600"
-                          } transition-colors duration-300`}
-                        />
-                        <ChevronDown
-                          className={`h-4 w-4 ${
-                            isDark ? "text-indigo-400" : "text-indigo-600"
-                          } transition-transform duration-300 ${
-                            showUserMenu ? "rotate-180" : ""
-                          }`}
-                        />
-                      </div>
-                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent to-white opacity-10"></div>
-                    </button>
+            <div className="flex items-center gap-6 w-full md:w-auto">
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleUserMenuToggle();
+                  }}
+                  aria-label="User menu"
+                  aria-haspopup="true"
+                  aria-expanded={showUserMenu}
+                  className={`group w-16 h-16 rounded-2xl shadow-sm transition-all duration-300 relative overflow-hidden hover:scale-105 cursor-pointer flex items-center justify-center ${isDark ? "bg-gray-800 border-gray-700" : "bg-slate-50 border-slate-200"
+                    } border-2 ${showUserMenu ? "ring-4 ring-indigo-500/20 border-indigo-600" : ""}`}
+                >
+                  <User
+                    className={`h-7 w-7 ${isDark ? "text-indigo-400" : "text-indigo-600"
+                      }`}
+                  />
+                  <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+                </button>
 
-                    {/* Dropdown Menu */}
-                    {showUserMenu && (
-                      <div
-                        className={`absolute top-full mt-2 left-0 w-64 rounded-xl shadow-2xl border z-[9999] ${
-                          isDark
-                            ? "bg-gray-800 border-gray-700"
-                            : "bg-white border-gray-200"
-                        }`}
-                      >
-                        <div className="py-3">
-                          {/* Header */}
-                          <div
-                            className={`px-4 py-2 border-b mb-2 ${
-                              isDark ? "border-gray-700" : "border-gray-100"
+                {/* Dropdown Menu */}
+                {showUserMenu && (
+                  <div
+                    className={`absolute top-full mt-4 left-0 w-64 rounded-2xl shadow-2xl border-0 z-[9999] p-2 animate-in fade-in slide-in-from-top-2 duration-200 ${isDark
+                      ? "bg-gray-800"
+                      : "bg-white"
+                      } ring-1 ring-black/5`}
+                  >
+                    <div className="p-3 border-b border-slate-100 mb-2">
+                      <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-slate-500" : "text-slate-400"}`}>Account</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      {[
+                        { icon: Edit, label: "Edit Profile", action: handleEditProfile },
+                        { icon: Shield, label: "Privacy & Security", action: handlePrivacySettings },
+                      ].map((item, idx) => (
+                        <button
+                          key={idx}
+                          onClick={item.action}
+                          className={`w-full flex items-center gap-3 px-4 py-3 text-left rounded-xl transition-all duration-200 text-sm font-semibold ${isDark
+                            ? "hover:bg-gray-700 text-gray-200"
+                            : "hover:bg-slate-50 text-slate-700 hover:text-indigo-600"
                             }`}
-                          >
-                            <p
-                              className={`font-semibold text-sm ${
-                                isDark ? "text-white" : "text-gray-900"
-                              }`}
-                            >
-                              Account Settings
-                            </p>
-                            <p
-                              className={`text-xs ${
-                                isDark ? "text-gray-400" : "text-gray-500"
-                              }`}
-                            >
-                              Manage your profile
-                            </p>
-                          </div>
-
-                          {/* Menu Items */}
-                          <div className="space-y-1 px-2">
-                            <button
-                              onClick={handleEditProfile}
-                              className={`w-full flex items-center gap-3 px-3 py-3 text-left rounded-lg transition-all duration-200 text-sm font-medium ${
-                                isDark
-                                  ? "hover:bg-gray-700 text-gray-200 hover:text-white"
-                                  : "hover:bg-gray-50 text-gray-700 hover:text-gray-900"
-                              }`}
-                            >
-                              <Edit
-                                className={`h-4 w-4 ${
-                                  isDark ? "text-indigo-400" : "text-indigo-600"
-                                }`}
-                              />
-                              <span>Edit Profile</span>
-                            </button>
-
-
-                            <button
-                              onClick={handlePrivacySettings}
-                              className={`w-full flex items-center gap-3 px-3 py-3 text-left rounded-lg transition-all duration-200 text-sm font-medium ${
-                                isDark
-                                  ? "hover:bg-gray-700 text-gray-200 hover:text-white"
-                                  : "hover:bg-gray-50 text-gray-700 hover:text-gray-900"
-                              }`}
-                            >
-                              <Shield
-                                className={`h-4 w-4 ${
-                                  isDark ? "text-indigo-400" : "text-indigo-600"
-                                }`}
-                              />
-                              <span>Privacy & Security</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-
-                  {/* Theme Toggle Button */}
-                  <button
-                    onClick={toggleTheme}
-                    className={`p-4 rounded-2xl shadow-lg transition-all duration-300 hover:scale-105 ${
-                      isDark ? "bg-gray-800" : "bg-white"
-                    }`}
-                  >
-                    {isDark ? (
-                      <Sun className="h-8 w-8 text-amber-300" />
-                    ) : (
-                      <Moon className="h-8 w-8 text-indigo-600" />
-                    )}
-                  </button>
-                </div>
-
-                {/* Welcome text */}
-                <div>
-                  <h2
-                    className={`text-xl font-medium mb-1 ${
-                      isDark ? "text-indigo-200" : "text-indigo-600"
-                    }`}
-                  >
-                    Welcome back
-                  </h2>
-                  <h1
-                    className={`text-4xl md:text-5xl font-bold transition-all duration-300 ${
-                      isDark
-                        ? "text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-purple-200"
-                        : "text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 to-purple-600"
-                    }`}
-                  >
-                    {userData.username}
-                  </h1>
-                </div>
+                )}
               </div>
 
-              {/* Email display */}
-              <div
-                className={`inline-flex items-center gap-2 py-2 px-4 rounded-full shadow-md transition-all duration-300 ${
-                  isDark ? "bg-gray-800" : "bg-white"
-                }`}
-              >
-                <Mail
-                  className={`h-4 w-4 ${
-                    isDark ? "text-indigo-300" : "text-indigo-600"
-                  }`}
-                />
-                <p
-                  className={`text-sm font-medium ${
-                    isDark ? "text-indigo-200" : "text-indigo-700"
-                  }`}
+              <div>
+                <h1
+                  className={`text-2xl md:text-3xl font-black transition-all duration-300 tracking-tight ${isDark
+                    ? "text-white"
+                    : "text-slate-900"
+                    }`}
                 >
-                  {userData.email}
-                </p>
+                  {userData.username}
+                </h1>
+                <div className="flex items-center gap-4 mt-1">
+                  <span className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-indigo-400" : "text-indigo-600"}`}>
+                    Creator Account
+                  </span>
+                  <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                  <div className="flex items-center gap-1.5">
+                    <Mail className={`h-3 w-3 ${isDark ? "text-slate-500" : "text-slate-400"}`} />
+                    <span className={`text-xs font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>{userData.email}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Logout button */}
-            <div>
+            {/* Actions section */}
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              {/* Theme Toggle Button */}
+              <button
+                onClick={toggleTheme}
+                aria-label="Toggle theme"
+                className={`p-3.5 rounded-2xl shadow-sm transition-all duration-300 hover:scale-105 border ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/50"
+                  }`}
+              >
+                {isDark ? (
+                  <Sun className="h-6 w-6 text-amber-300" />
+                ) : (
+                  <Moon className="h-6 w-6 text-indigo-600" />
+                )}
+              </button>
+
               <button
                 disabled={loggingOut}
                 onClick={LogOutHandler}
-                className={`relative group px-6 py-3 rounded-full text-lg font-semibold shadow-lg flex items-center gap-3 transition-all duration-300 ${
-                  loggingOut
-                    ? "opacity-60 cursor-not-allowed"
-                    : isDark
-                    ? "bg-gradient-to-r from-indigo-700 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-500"
-                    : "bg-gradient-to-r from-indigo-600 to-purple-500 text-white hover:from-indigo-500 hover:to-purple-400"
-                }`}
+                className={`flex-grow md:flex-grow-0 px-6 py-3.5 rounded-2xl text-sm font-bold shadow-sm flex items-center justify-center gap-3 transition-all duration-300 ${loggingOut
+                  ? "opacity-60 cursor-not-allowed"
+                  : isDark
+                    ? "bg-slate-800 text-white hover:bg-slate-700"
+                    : "bg-slate-900 text-white hover:bg-indigo-600 hover:shadow-lg hover:shadow-indigo-100 hover:-translate-y-0.5"
+                  }`}
               >
                 {loggingOut ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <LogOut className="h-5 w-5 transform group-hover:translate-x-1 transition-transform duration-300" />
+                  <LogOut className="h-4 w-4" />
                 )}
-                <span>Log Out</span>
-
-                {/* Button hover effect */}
-                <span className="absolute inset-0 rounded-full bg-white -z-10 opacity-0 group-hover:opacity-20 transform scale-110 transition-all duration-300"></span>
+                <span>Sign Out</span>
               </button>
             </div>
           </div>
 
-          {/* Status badge */}
-          <div
-            className={`absolute top-4 right-4 rounded-full px-3 py-1 text-xs font-medium flex items-center gap-1 ${
-              isDark ? "bg-gray-800 text-green-400" : "bg-white text-green-600"
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            Online
-          </div>
+          {/* Spacer for the overlapping dashboard content */}
+          <div className="h-10"></div>
         </div>
       </div>
     )

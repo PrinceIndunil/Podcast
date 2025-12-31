@@ -1,21 +1,26 @@
 import React, { useState, useEffect } from "react";
 import axios from 'axios';
-import { 
-    Play, 
-    Pause, 
-    Calendar, 
-    Clock, 
-    Volume2, 
-    Search, 
-    Filter, 
-    Eye, 
+import { useSelector } from "react-redux";
+import {
+    Play,
+    Pause,
+    Calendar,
+    Clock,
+    Volume2,
+    Search,
+    Filter,
+    Eye,
     Headphones,
     Music,
     MoreVertical,
     Download,
     Share2,
     Edit3,
-    Trash2
+    Trash2,
+    ChevronDown,
+    ChevronUp,
+    ChevronRight,
+    Layers
 } from "lucide-react";
 
 const Episode = () => {
@@ -31,6 +36,17 @@ const Episode = () => {
     const [activeView, setActiveView] = useState("grid");
     const [showSortDropdown, setShowSortDropdown] = useState(false);
     const [showOptionsMenu, setShowOptionsMenu] = useState(null);
+    const [expandedPodcasts, setExpandedPodcasts] = useState({});
+
+    const togglePodcastExpansion = (podcastId) => {
+        setExpandedPodcasts(prev => ({
+            ...prev,
+            [podcastId]: !prev[podcastId]
+        }));
+    };
+
+    const userId = useSelector((state) => state.auth.userId);
+    const isLoggedIn = useSelector((state) => state.auth.isLoggedIn);
 
     useEffect(() => {
         fetchEpisodes();
@@ -41,17 +57,16 @@ const Episode = () => {
         try {
             setLoading(true);
             setError(null);
-            console.log("Fetching episodes..."); 
-            
+            console.log("Fetching episodes...");
+
             const res = await axios.get("http://localhost:8800/api/v1/get-episodes", {
                 withCredentials: true
             });
-            
+
             console.log("Episodes response:", res.data);
-            
+
             const episodesData = res.data.data || res.data || [];
-            
-            // Debug each episode's structure
+ 
             episodesData.forEach((episode, index) => {
                 console.log(`Episode ${index}:`, {
                     title: episode.title,
@@ -60,9 +75,9 @@ const Episode = () => {
                     audioUrl: episode.audioUrl,
                 });
             });
-            
+
             setEpisodes(episodesData);
-            
+
             if (episodesData.length === 0) {
                 console.log("No episodes found");
             }
@@ -78,13 +93,13 @@ const Episode = () => {
     const fetchPodcasts = async () => {
         try {
             console.log("Fetching podcasts...");
-            
+
             const res = await axios.get("http://localhost:8800/api/v1/get-user-podcasts", {
                 withCredentials: true
             });
-            
+
             console.log("Podcasts response:", res.data);
-            
+
             const podcastsData = res.data.data || res.data || [];
             setPodcasts(podcastsData);
         } catch (error) {
@@ -101,17 +116,26 @@ const Episode = () => {
         return `http://localhost:8800${imageUrl}`;
     };
 
+    const getAudioUrl = (audioUrl) => {
+        if (!audioUrl) return null;
+
+        if (audioUrl.startsWith('http')) return audioUrl;
+
+        const cleanUrl = audioUrl.startsWith('/') ? audioUrl : `/${audioUrl}`;
+        return `http://localhost:8800${cleanUrl}`;
+    };
+
     const handlePlayPause = (episode) => {
         const audioUrl = episode.audioFile || episode.audioUrl || episode.audio;
-        
+
         if (!audioUrl) {
             console.log("No audio URL found for episode:", episode);
             alert("Audio file not available");
             return;
         }
-        
-        console.log("Audio URL:", audioUrl);
-        
+
+        console.log("Raw audio URL:", audioUrl);
+
         if (playingEpisode === episode._id) {
             if (currentAudio) {
                 currentAudio.pause();
@@ -121,29 +145,72 @@ const Episode = () => {
             if (currentAudio) {
                 currentAudio.pause();
             }
-            
-            // Create and play new audio
-            const audio = new Audio(getImageUrl(audioUrl));
+
+            const processedAudioUrl = getAudioUrl(audioUrl);
+            console.log("Processed audio URL:", processedAudioUrl);
+
+            const audio = new Audio(processedAudioUrl);
+
             audio.addEventListener('loadstart', () => {
                 console.log("Audio loading started");
             });
+
+            audio.addEventListener('canplaythrough', () => {
+                console.log("Audio can play through");
+            });
+
             audio.addEventListener('error', (e) => {
                 console.error("Audio failed to load:", e);
-                alert("Failed to load audio");
+                console.error("Audio error details:", {
+                    error: e.target.error,
+                    networkState: e.target.networkState,
+                    readyState: e.target.readyState,
+                    src: e.target.src
+                });
+                alert(`Failed to load audio: ${e.target.error?.message || 'Unknown error'}`);
                 setPlayingEpisode(null);
             });
+
             audio.addEventListener('ended', () => {
                 setPlayingEpisode(null);
             });
-            
+
             setCurrentAudio(audio);
             setPlayingEpisode(episode._id);
-            
-            audio.play().catch(error => {
-                console.error("Audio play failed:", error);
-                alert("Failed to play audio");
-                setPlayingEpisode(null);
-            });
+
+            fetch(processedAudioUrl, { method: 'HEAD' })
+                .then(response => {
+                    if (response.ok) {
+                        console.log("Audio URL is accessible");
+
+                        if (isLoggedIn && episode.podcastId) {
+                            const podcastId = typeof episode.podcastId === 'object' ? episode.podcastId._id : episode.podcastId;
+
+                            axios.post(`http://localhost:8800/api/v1/save-watched`, {
+                                podcastId: podcastId,
+                                progress: 0,
+                                duration: episode.duration || 0
+                            }, {
+                                withCredentials: true
+                            })
+                                .then(() => {
+                                    console.log("Episode saved to watch history");
+                                })
+                                .catch(err => {
+                                    console.error("Failed to save watch history:", err);
+                                });
+                        }
+
+                        return audio.play();
+                    } else {
+                        throw new Error(`Audio file not found (${response.status})`);
+                    }
+                })
+                .catch(error => {
+                    console.error("Audio play failed:", error);
+                    alert(`Failed to play audio: ${error.message}`);
+                    setPlayingEpisode(null);
+                });
         }
     };
 
@@ -155,32 +222,70 @@ const Episode = () => {
         { value: "duration", label: "Duration" }
     ];
 
-    // Filter and sort episodes
-    const filteredAndSortedEpisodes = episodes
-        .filter(episode => {
+
+    const groupedEpisodes = React.useMemo(() => {
+        const groups = {};
+
+        const filtered = episodes.filter(episode => {
             const matchesSearch =
                 (episode.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (episode.description || '').toLowerCase().includes(searchTerm.toLowerCase());
             const matchesPodcast =
-                selectedPodcast === "all" || (episode.podcastId && episode.podcastId._id === selectedPodcast);
+                selectedPodcast === "all" ||
+                (episode.podcastId && (typeof episode.podcastId === 'object' ? episode.podcastId._id : episode.podcastId) === selectedPodcast);
             return matchesSearch && matchesPodcast;
-        })
-        .sort((a, b) => {
-            switch (sortBy) {
-                case "newest":
-                    return new Date(b.createdAt) - new Date(a.createdAt);
-                case "oldest":
-                    return new Date(a.createdAt) - new Date(b.createdAt);
-                case "title":
-                    return (a.title || '').localeCompare(b.title || '');
-                case "episode":
-                    return (a.episodeNumber || 0) - (b.episodeNumber || 0);
-                case "duration":
-                    return (b.duration || 0) - (a.duration || 0);
-                default:
-                    return 0;
+        });
+
+        filtered.forEach(episode => {
+            const podId = (typeof episode.podcastId === 'object' ? episode.podcastId?._id : episode.podcastId);
+            const groupId = podId || `standalone-${episode._id}`;
+
+            if (!groups[groupId]) {
+                const podTitle = (typeof episode.podcastId === 'object' ? episode.podcastId?.title : null) ||
+                    episode.podcastTitle ||
+                    (podId ? 'Untitled Series' : episode.title);
+
+                groups[groupId] = {
+                    podcastId: podId,
+                    podcastTitle: podTitle,
+                    episodes: [],
+                    representativeEpisode: episode,
+                    latestDate: new Date(episode.createdAt)
+                };
+            }
+            groups[groupId].episodes.push(episode);
+
+            const episodeDate = new Date(episode.createdAt);
+            if (episodeDate > groups[groupId].latestDate) {
+                groups[groupId].latestDate = episodeDate;
             }
         });
+
+        const result = Object.values(groups);
+
+        result.forEach(group => {
+            group.episodes.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+            
+            group.representativeEpisode = group.episodes[0];
+        });
+
+        result.sort((a, b) => {
+            switch (sortBy) {
+                case "newest":
+                    return b.latestDate - a.latestDate;
+                case "oldest":
+                    return a.latestDate - b.latestDate;
+                case "title":
+                    return a.podcastTitle.localeCompare(b.podcastTitle);
+                default:
+                    return b.latestDate - a.latestDate;
+            }
+        });
+
+        const seriesOnly = result.filter(group => group.episodes.length > 1);
+
+        return seriesOnly;
+    }, [episodes, searchTerm, selectedPodcast, sortBy]);
 
     const formatDate = (dateString) => {
         if (!dateString) return "Unknown date";
@@ -251,7 +356,7 @@ const Episode = () => {
                         <div className="absolute -right-10 -top-10 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
                         <div className="absolute left-1/4 -bottom-20 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }}></div>
                     </div>
-                    
+
                     <div className="max-w-7xl mx-auto relative z-10">
                         <div className="flex items-center gap-4 mb-6">
                             <div className="bg-white/20 p-4 rounded-full backdrop-blur-md shadow-xl">
@@ -274,7 +379,7 @@ const Episode = () => {
                             ))}
                         </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {renderSkeletons()}
                     </div>
@@ -283,7 +388,6 @@ const Episode = () => {
         );
     }
 
-    // Show error state
     if (error) {
         return (
             <div className="min-h-screen bg-gradient-to-b from-purple-50 via-slate-50 to-indigo-50 pb-16 flex items-center justify-center">
@@ -294,7 +398,7 @@ const Episode = () => {
                         <p className="text-gray-600 mb-4">
                             {error}
                         </p>
-                        <button 
+                        <button
                             onClick={() => {
                                 setError(null);
                                 fetchEpisodes();
@@ -311,20 +415,17 @@ const Episode = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-purple-50 via-slate-50 to-indigo-50 pb-16">
-            {/* Hero Header Section with Enhanced Visuals */}
             <div className="bg-gradient-to-r from-indigo-800 via-purple-800 to-indigo-900 text-white pt-16 pb-32 px-4 relative overflow-hidden">
-                {/* Animated Background Elements */}
                 <div className="absolute inset-0 overflow-hidden">
                     <div className="absolute -right-10 -top-10 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
                     <div className="absolute left-1/4 -bottom-20 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }}></div>
                     <div className="absolute right-1/3 top-1/3 w-36 h-36 bg-purple-400/20 rounded-full blur-2xl animate-pulse" style={{ animationDelay: "2s" }}></div>
-                    
-                    {/* Audio Wave Animation */}
+
                     <div className="absolute bottom-0 left-0 right-0 h-16 opacity-20">
                         <div className="flex items-end justify-center h-full gap-1">
                             {Array(30).fill(0).map((_, i) => (
-                                <div 
-                                    key={i} 
+                                <div
+                                    key={i}
                                     className="bg-white w-2 rounded-t-full animate-pulse"
                                     style={{
                                         height: `${Math.sin(i * 0.5) * 30 + 50}%`,
@@ -341,18 +442,18 @@ const Episode = () => {
                         <div className="bg-white/20 p-4 rounded-full backdrop-blur-md shadow-xl">
                             <Eye className="h-6 w-6" />
                         </div>
-                        <h1 className="text-5xl font-extrabold tracking-tight">My Episodes</h1>
+                        <h1 className="text-5xl font-extrabold tracking-tight">My Series</h1>
                     </div>
-                    
+
                     <p className="max-w-2xl text-white/90 mb-8 text-lg font-light leading-relaxed">
-                        Manage, organize, and listen to your podcast episodes. Keep track of your content 
+                        Manage, organize, and listen to your podcast series. Keep track of your content
                         and engage with your audience through quality audio experiences.
                     </p>
 
                     <div className="relative max-w-2xl">
                         <input
                             type="text"
-                            placeholder="Search your episodes by title or description..."
+                            placeholder="Search your podcast series by title or description..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 
@@ -374,12 +475,9 @@ const Episode = () => {
 
             {/* Content Section */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-10">
-                {/* Enhanced Filters and Controls */}
                 <div className="bg-white rounded-2xl shadow-xl p-6 mb-8">
                     <div className="flex flex-col lg:flex-row gap-6 justify-between items-center">
-                        {/* Filter Controls */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
-                            {/* Podcast Filter */}
                             <div className="relative">
                                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                                 <select
@@ -396,7 +494,6 @@ const Episode = () => {
                                 </select>
                             </div>
 
-                            {/* Sort Dropdown */}
                             <div className="relative">
                                 <button
                                     onClick={toggleSortDropdown}
@@ -413,18 +510,17 @@ const Episode = () => {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                     </svg>
                                 </button>
-                                
+
                                 {showSortDropdown && (
                                     <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-gray-100 z-50 divide-y divide-gray-100">
                                         <div className="py-1">
                                             {sortOptions.map((option) => (
                                                 <button
                                                     key={option.value}
-                                                    className={`block w-full text-left px-4 py-3 text-sm transition-colors ${
-                                                        sortBy === option.value
-                                                            ? "bg-indigo-50 text-indigo-700 font-medium"
-                                                            : "text-gray-700 hover:bg-gray-50"
-                                                    }`}
+                                                    className={`block w-full text-left px-4 py-3 text-sm transition-colors ${sortBy === option.value
+                                                        ? "bg-indigo-50 text-indigo-700 font-medium"
+                                                        : "text-gray-700 hover:bg-gray-50"
+                                                        }`}
                                                     onClick={() => handleSortSelect(option.value)}
                                                 >
                                                     {option.label}
@@ -439,7 +535,7 @@ const Episode = () => {
                         {/* View Toggle */}
                         <div className="flex items-center gap-4">
                             <div className="bg-gray-100 rounded-lg p-1 flex gap-1">
-                                <button 
+                                <button
                                     onClick={() => setActiveView("grid")}
                                     className={`p-2 rounded transition-all ${activeView === "grid" ? "bg-white shadow text-indigo-600" : "hover:bg-gray-200 text-gray-600"}`}
                                 >
@@ -447,7 +543,7 @@ const Episode = () => {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                                     </svg>
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => setActiveView("list")}
                                     className={`p-2 rounded transition-all ${activeView === "list" ? "bg-white shadow text-indigo-600" : "hover:bg-gray-200 text-gray-600"}`}
                                 >
@@ -461,15 +557,15 @@ const Episode = () => {
                 </div>
 
                 {/* Results Count */}
-                {filteredAndSortedEpisodes.length > 0 && (
+                {groupedEpisodes.length > 0 && (
                     <div className="flex justify-between items-center mb-6 px-1">
                         <p className="text-gray-600">
-                            {filteredAndSortedEpisodes.length} episode{filteredAndSortedEpisodes.length !== 1 ? 's' : ''} found
+                            {groupedEpisodes.reduce((acc, g) => acc + g.episodes.length, 0)} {groupedEpisodes.reduce((acc, g) => acc + g.episodes.length, 0) === 1 ? 'Podcast' : 'Podcasts'} found
                             {searchTerm && ` for "${searchTerm}"`}
                         </p>
-                        
+
                         {searchTerm && (
-                            <button 
+                            <button
                                 onClick={() => setSearchTerm("")}
                                 className="text-indigo-600 text-sm hover:text-indigo-800 flex items-center gap-1"
                             >
@@ -481,260 +577,173 @@ const Episode = () => {
                 )}
 
                 {/* Episodes Content */}
-                {filteredAndSortedEpisodes.length === 0 ? (
+                {groupedEpisodes.length === 0 ? (
                     <div className="text-center py-16">
                         <div className="bg-indigo-50 rounded-xl p-8 inline-block">
                             <Volume2 className="w-16 h-16 text-indigo-400 mx-auto mb-4" />
-                            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Episodes Found</h3>
+                            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Podcasts Found</h3>
                             <p className="text-gray-600 mb-4">
                                 {searchTerm || selectedPodcast !== "all"
                                     ? "Try adjusting your search or filter criteria"
-                                    : episodes.length === 0 
-                                        ? "You haven't created any episodes yet. Create your first episode to get started!"
-                                        : "No episodes match your current filters"}
+                                    : episodes.length === 0
+                                        ? "You haven't created any podcasts yet. Create your first one to get started!"
+                                        : "No podcasts match your current filters"}
                             </p>
-                            {searchTerm && (
-                                <button 
-                                    onClick={() => setSearchTerm("")} 
-                                    className="px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors mr-2"
-                                >
-                                    Clear Search
-                                </button>
-                            )}
-                            <button 
+                            <button
                                 onClick={() => {
+                                    setSearchTerm("");
+                                    setSelectedPodcast("all");
                                     fetchEpisodes();
-                                    fetchPodcasts();
-                                }} 
-                                className="px-6 py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-colors"
+                                }}
+                                className="px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"
                             >
-                                Refresh
+                                Clear All Filters
                             </button>
                         </div>
                     </div>
-                ) : activeView === "grid" ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {filteredAndSortedEpisodes.map((episode, index) => (
-                            <div
-                                key={episode._id}
-                                className="bg-white rounded-xl shadow-sm border hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1"
-                                style={{
-                                    animationDelay: `${index * 0.1}s`,
-                                    animationFillMode: "backwards",
-                                    animation: "fadeIn 0.5s ease-out",
-                                }}
-                            >
-                                <div className="p-6">
-                                    {/* Episode Header */}
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                {episode.episodeNumber && (
-                                                    <span className="bg-indigo-100 text-indigo-800 text-xs font-semibold px-3 py-1 rounded-full">
-                                                        EP {episode.episodeNumber}
-                                                    </span>
-                                                )}
-                                                <span className="text-sm text-gray-500 font-medium">
-                                                    {episode.podcastId?.title || "Unknown Podcast"}
+                ) : (
+                    <div className="space-y-6">
+                        {groupedEpisodes.map((group, groupIndex) => {
+                            const isExpanded = expandedPodcasts[group.podcastId];
+                            const mainEpisode = group.representativeEpisode;
+                            const hasMultiple = group.episodes.length > 1;
+
+                            return (
+                                <div
+                                    key={group.podcastId}
+                                    className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md"
+                                >
+                                    <div
+                                        className={`p-6 flex flex-col md:flex-row items-center gap-6 cursor-pointer hover:bg-slate-50 transition-colors ${isExpanded ? 'bg-slate-50/50 border-b border-gray-100' : ''}`}
+                                        onClick={() => hasMultiple && togglePodcastExpansion(group.podcastId)}
+                                    >
+                                        <div className="relative flex-shrink-0">
+                                            {mainEpisode.episodeImage ? (
+                                                <img
+                                                    src={getImageUrl(mainEpisode.episodeImage)}
+                                                    alt={group.podcastTitle}
+                                                    className="w-24 h-24 rounded-2xl object-cover shadow-sm"
+                                                />
+                                            ) : (
+                                                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                                                    <Music className="w-10 h-10 text-white opacity-80" />
+                                                </div>
+                                            )}
+                                            {hasMultiple && (
+                                                <div className="absolute -top-2 -right-2 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg flex items-center gap-1">
+                                                    <Layers className="w-3 h-3" />
+                                                    {group.episodes.length}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Content */}
+                                        <div className="flex-1 text-center md:text-left">
+                                            <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
+                                                <span className={`text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full ${hasMultiple ? 'text-indigo-600 bg-indigo-50' : 'text-slate-600 bg-slate-100'}`}>
+                                                    {hasMultiple ? 'Podcast Series' : 'Podcast'}
+                                                </span>
+                                                <span className="text-xs text-gray-400 font-medium flex items-center gap-1">
+                                                    <Calendar className="w-3 h-3" />
+                                                    Updated {formatDate(mainEpisode.createdAt)}
                                                 </span>
                                             </div>
-                                            <h3 className="text-xl font-semibold text-gray-900 mb-2 line-clamp-2">
-                                                {episode.title || "Untitled Episode"}
+                                            <h3 className="text-2xl font-black text-gray-900 mb-2 tracking-tight group-hover:text-indigo-600 transition-colors">
+                                                {group.podcastTitle}
                                             </h3>
-                                            <p className="text-gray-600 text-sm line-clamp-3 mb-4">
-                                                {episode.description || "No description available"}
+                                            <p className="text-gray-500 text-sm line-clamp-2 max-w-2xl">
+                                                {mainEpisode.description || "Collection of episodes exploring this topic."}
                                             </p>
                                         </div>
 
-                                        {/* Episode Image & Options */}
-                                        <div className="ml-4 flex-shrink-0 relative">
-                                            {episode.episodeImage ? (
-                                                <img
-                                                    src={getImageUrl(episode.episodeImage)}
-                                                    alt={episode.title}
-                                                    className="w-20 h-20 rounded-xl object-cover shadow-md"
-                                                    onError={(e) => {
-                                                        console.log("Image failed to load:", episode.episodeImage);
-                                                        e.target.style.display = 'none';
-                                                        e.target.nextSibling.style.display = 'flex';
+                                        {/* Actions & Toggle */}
+                                        <div className="flex items-center gap-4">
+                                            {!isExpanded && !hasMultiple && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handlePlayPause(mainEpisode);
                                                     }}
-                                                />
-                                            ) : null}
-                                            <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center shadow-md" style={{display: episode.episodeImage ? 'none' : 'flex'}}>
-                                                <Music className="w-8 h-8 text-white" />
-                                            </div>
-                                            <div className="absolute -top-2 -right-2">
-                                                <button
-                                                    onClick={() => toggleOptionsMenu(episode._id)}
-                                                    className="bg-white rounded-full p-1.5 shadow-lg border border-gray-100 hover:bg-gray-50 transition-colors"
+                                                    className="p-4 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
                                                 >
-                                                    <MoreVertical className="w-4 h-4 text-gray-600" />
+                                                    {playingEpisode === mainEpisode._id ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
                                                 </button>
-                                                
-                                                {showOptionsMenu === episode._id && (
-                                                    <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-100 z-50 py-1">
-                                                        <button className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2">
-                                                            <Edit3 className="w-4 h-4" />
-                                                            Edit
-                                                        </button>
-                                                        <button className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2">
-                                                            <Download className="w-4 h-4" />
-                                                            Download
-                                                        </button>
-                                                        <button className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2">
-                                                            <Share2 className="w-4 h-4" />
-                                                            Share
-                                                        </button>
-                                                        <hr className="my-1" />
-                                                        <button className="w-full text-left px-3 py-2 text-sm hover:bg-red-50 text-red-600 flex items-center gap-2">
-                                                            <Trash2 className="w-4 h-4" />
-                                                            Delete
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
+                                            )}
+
+                                            {hasMultiple && (
+                                                <div className="flex items-center gap-2 text-indigo-600 font-bold text-sm bg-indigo-50 px-4 py-2 rounded-xl">
+                                                    {isExpanded ? "Collapse" : `View ${group.episodes.length} Episodes`}
+                                                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
-                                    {/* Episode Meta */}
-                                    <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                                        <div className="flex items-center space-x-4">
-                                            <div className="flex items-center">
-                                                <Calendar className="w-4 h-4 mr-1" />
-                                                {formatDate(episode.createdAt)}
-                                            </div>
-                                            <div className="flex items-center">
-                                                <Clock className="w-4 h-4 mr-1" />
-                                                {formatDuration(episode.duration)}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Play Button */}
-                                    <button
-                                        onClick={() => handlePlayPause(episode)}
-                                        className="flex items-center justify-center w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-md hover:shadow-lg"
-                                    >
-                                        {playingEpisode === episode._id ? (
-                                            <>
-                                                <Pause className="w-5 h-5 mr-2" />
-                                                Pause Episode
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Play className="w-5 h-5 mr-2" />
-                                                Play Episode
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    /* List View */
-                    <div className="space-y-4">
-                        {filteredAndSortedEpisodes.map((episode, index) => (
-                            <div
-                                key={episode._id}
-                                className="bg-white rounded-xl shadow-sm border overflow-hidden transition-all duration-300 hover:shadow-lg"
-                                style={{
-                                    animationDelay: `${index * 0.05}s`,
-                                    animationFillMode: "backwards",
-                                    animation: "fadeIn 0.5s ease-out",
-                                }}
-                            >
-                                <div className="flex flex-col sm:flex-row">
-                                    <div className="sm:w-48 w-full h-48 sm:h-auto overflow-hidden">
-                                        {episode.episodeImage ? (
-                                            <img src={episode.episodeImage} alt={episode.title} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="bg-gradient-to-r from-indigo-400 to-purple-500 w-full h-full flex items-center justify-center">
-                                                <Headphones className="h-16 w-16 text-white" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="p-6 flex-1">
-                                        <div className="flex items-start justify-between mb-3">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    {episode.episodeNumber && (
-                                                        <span className="bg-indigo-100 text-indigo-800 text-xs font-semibold px-3 py-1 rounded-full">
-                                                            EP {episode.episodeNumber}
-                                                        </span>
-                                                    )}
-                                                    <span className="text-sm text-gray-500 font-medium">
-                                                        {episode.podcastId?.title || "Unknown Podcast"}
-                                                    </span>
-                                                </div>
-                                                <h3 className="font-bold text-xl mb-2 text-gray-900 line-clamp-2">{episode.title}</h3>
-                                                <p className="text-gray-600 line-clamp-2 mb-4">{episode.description}</p>
-                                            </div>
-                                            <div className="ml-4 relative">
-                                                <button
-                                                    onClick={() => toggleOptionsMenu(episode._id)}
-                                                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                    {/* Expanded Episode List */}
+                                    {isExpanded && (
+                                        <div className="bg-white p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            {group.episodes.map((episode, idx) => (
+                                                <div
+                                                    key={episode._id}
+                                                    className="flex items-center justify-between p-4 rounded-xl border border-gray-50 bg-slate-50/30 hover:bg-slate-50 hover:border-indigo-100 transition-all group"
                                                 >
-                                                    <MoreVertical className="w-4 h-4 text-gray-600" />
-                                                </button>
-                                                
-                                                {showOptionsMenu === episode._id && (
-                                                    <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-100 z-50 py-1">
-                                                        <button className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2">
-                                                            <Edit3 className="w-4 h-4" />
-                                                            Edit
-                                                        </button>
-                                                        <button className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2">
-                                                            <Download className="w-4 h-4" />
-                                                            Download
-                                                        </button>
-                                                        <button className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2">
-                                                            <Share2 className="w-4 h-4" />
-                                                            Share
-                                                        </button>
-                                                        <hr className="my-1" />
-                                                        <button className="w-full text-left px-3 py-2 text-sm hover:bg-red-50 text-red-600 flex items-center gap-2">
-                                                            <Trash2 className="w-4 h-4" />
-                                                            Delete
-                                                        </button>
+                                                    <div className="flex items-center gap-4 flex-1">
+                                                        <div className="w-10 h-10 rounded-lg bg-white shadow-sm flex items-center justify-center text-indigo-600 font-bold border border-gray-100 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                                            {idx + 1}
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-bold text-gray-800 flex items-center gap-2">
+                                                                {episode.title}
+                                                                {hasMultiple && idx === 0 && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase">Episode 1</span>}
+                                                                {hasMultiple && idx > 0 && <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full uppercase">Episode {idx + 1}</span>}
+                                                            </h4>
+                                                            <div className="flex items-center gap-4 text-xs text-gray-400 mt-1">
+                                                                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDuration(episode.duration)}</span>
+                                                                <span className="flex items-center gap-1 uppercase tracking-tighter">{formatDate(episode.createdAt)}</span>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="flex items-center space-x-4 text-sm text-gray-500">
-                                                <div className="flex items-center">
-                                                    <Calendar className="w-4 h-4 mr-1" />
-                                                    {formatDate(episode.createdAt)}
+
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => handlePlayPause(episode)}
+                                                            className={`p-3 rounded-xl transition-all ${playingEpisode === episode._id ? 'bg-rose-500 text-white shadow-rose-200' : 'bg-white text-indigo-600 shadow-sm border border-gray-100 hover:bg-indigo-600 hover:text-white'}`}
+                                                        >
+                                                            {playingEpisode === episode._id ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                                                        </button>
+
+                                                        <div className="relative">
+                                                            <button
+                                                                onClick={() => toggleOptionsMenu(episode._id)}
+                                                                className="p-3 text-gray-400 hover:text-gray-600 transition-colors"
+                                                            >
+                                                                <MoreVertical className="w-5 h-5" />
+                                                            </button>
+                                                            {showOptionsMenu === episode._id && (
+                                                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 z-50 py-2">
+                                                                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 flex items-center gap-2">
+                                                                        <Download className="w-4 h-4" /> Download
+                                                                    </button>
+                                                                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 flex items-center gap-2 text-rose-600">
+                                                                        <Trash2 className="w-4 h-4" /> Delete
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center">
-                                                    <Clock className="w-4 h-4 mr-1" />
-                                                    {formatDuration(episode.duration)}
-                                                </div>
-                                            </div>
-                                            
-                                            <button
-                                                onClick={() => handlePlayPause(episode)}
-                                                className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-md hover:shadow-lg"
-                                            >
-                                                {playingEpisode === episode._id ? (
-                                                    <>
-                                                        <Pause className="w-4 h-4" />
-                                                        Pause
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Play className="w-4 h-4" />
-                                                        Play
-                                                    </>
-                                                )}
-                                            </button>
+                                            ))}
                                         </div>
-                                    </div>
+                                    )}
+
+                                    {!hasMultiple && isExpanded && (
+                                        <div className="p-4 text-center text-gray-400 text-sm italic">
+                                            No additional episodes found.
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>
